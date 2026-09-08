@@ -23,9 +23,13 @@ from utils.styling import aplicar_estilo
 # ============================================================
 
 st.set_page_config(
+
     page_title="Monitoramento Clínico | UTI Intelligent Care",
+
     page_icon="🩺",
+
     layout="wide"
+
 )
 
 
@@ -70,6 +74,144 @@ if df.empty:
 
 
 # ============================================================
+# VALIDAÇÃO DA COLUNA TIMESTAMP
+# ============================================================
+
+if "timestamp" not in df.columns:
+
+    st.error(
+        "❌ A coluna 'timestamp' não foi encontrada."
+    )
+
+    st.stop()
+
+
+# ============================================================
+# PRESERVAÇÃO DO TIMESTAMP ORIGINAL
+# ============================================================
+
+# Mantém uma cópia do valor original.
+#
+# Isso facilita o diagnóstico caso exista algum problema
+# com o formato da data.
+
+df["timestamp_original"] = (
+
+    df["timestamp"]
+
+    .astype(str)
+
+    .str.strip()
+
+)
+
+
+# ============================================================
+# PROCESSAMENTO CORRETO DO TIMESTAMP
+# ============================================================
+
+# IMPORTANTE:
+#
+# A base simulada utiliza:
+#
+# DD/MM/AAAA HH:MM
+#
+# Exemplo:
+#
+# 07/09/2026 20:00
+#
+# O formato é definido explicitamente para impedir
+# interpretações automáticas como:
+#
+# MM/DD/AAAA
+
+
+df["timestamp"] = pd.to_datetime(
+
+    df["timestamp_original"],
+
+    format="%d/%m/%Y %H:%M",
+
+    errors="coerce"
+
+)
+
+
+# ============================================================
+# VERIFICAÇÃO DE DATAS INVÁLIDAS
+# ============================================================
+
+quantidade_timestamps_invalidos = (
+
+    df["timestamp"]
+
+    .isna()
+
+    .sum()
+
+)
+
+
+# ============================================================
+# REMOÇÃO DE DATAS INVÁLIDAS
+# ============================================================
+
+df = df.dropna(
+
+    subset=[
+
+        "timestamp"
+
+    ]
+
+)
+
+
+# ============================================================
+# VALIDAÇÃO APÓS CONVERSÃO
+# ============================================================
+
+if df.empty:
+
+    st.error(
+
+        """
+        ❌ Não existem timestamps válidos na base.
+
+        O formato esperado é:
+
+        DD/MM/AAAA HH:MM
+
+        Exemplo:
+
+        07/09/2026 20:00
+        """
+
+    )
+
+    st.stop()
+
+
+# ============================================================
+# ORDENAÇÃO TEMPORAL
+# ============================================================
+
+df = (
+
+    df
+
+    .sort_values(
+
+        "timestamp"
+
+    )
+
+    .copy()
+
+)
+
+
+# ============================================================
 # PROCESSAMENTO ANALÍTICO
 # ============================================================
 
@@ -110,59 +252,43 @@ except Exception as e:
 
 
 # ============================================================
-# PROCESSAMENTO DO TIMESTAMP
+# ORDENAÇÃO FINAL
 # ============================================================
 
-if "timestamp" in df.columns:
+df = (
 
-    df["timestamp"] = pd.to_datetime(
+    df
 
-        df["timestamp"],
+    .sort_values(
 
-        dayfirst=True,
-
-        errors="coerce"
+        "timestamp"
 
     )
 
+    .copy()
 
-else:
-
-    st.error(
-        "❌ A coluna 'timestamp' não foi encontrada."
-    )
-
-    st.stop()
-
-
-# ============================================================
-# REMOVER TIMESTAMPS INVÁLIDOS
-# ============================================================
-
-df = df.dropna(
-    subset=["timestamp"]
 )
 
 
 # ============================================================
-# VALIDAÇÃO APÓS PROCESSAMENTO
+# PERÍODO TOTAL DA BASE
 # ============================================================
 
-if df.empty:
+data_min = (
 
-    st.error(
-        "❌ Não existem timestamps válidos na base."
-    )
+    df["timestamp"]
 
-    st.stop()
+    .min()
+
+)
 
 
-# ============================================================
-# ORDENAÇÃO TEMPORAL
-# ============================================================
+data_max = (
 
-df = df.sort_values(
-    "timestamp"
+    df["timestamp"]
+
+    .max()
+
 )
 
 
@@ -176,10 +302,12 @@ st.title(
 
 
 st.caption(
+
     """
-    Acompanhamento temporal dos indicadores clínicos
-    simulados dos pacientes da UTI.
+    Acompanhamento temporal individual dos indicadores
+    clínicos simulados dos pacientes da UTI.
     """
+
 )
 
 
@@ -199,43 +327,7 @@ st.sidebar.header(
 # FILTRO DE PACIENTE
 # ============================================================
 
-if "id_paciente" in df.columns:
-
-
-    lista_pacientes = sorted(
-
-        df[
-            "id_paciente"
-        ]
-
-        .dropna()
-
-        .unique()
-
-        .tolist()
-
-    )
-
-
-    if not lista_pacientes:
-
-        st.error(
-            "❌ Nenhum paciente encontrado na base."
-        )
-
-        st.stop()
-
-
-    paciente_selecionado = st.sidebar.selectbox(
-
-        "Selecionar paciente",
-
-        lista_pacientes
-
-    )
-
-
-else:
+if "id_paciente" not in df.columns:
 
     st.error(
         "❌ A coluna 'id_paciente' não foi encontrada."
@@ -244,57 +336,59 @@ else:
     st.stop()
 
 
-# ============================================================
-# FILTRO DE PERÍODO
-# ============================================================
+lista_pacientes = (
 
-data_min = df[
-    "timestamp"
-].min()
+    df[
+        "id_paciente"
+    ]
+
+    .dropna()
+
+    .astype(str)
+
+    .unique()
+
+    .tolist()
+
+)
 
 
-data_max = df[
-    "timestamp"
-].max()
+lista_pacientes = sorted(
+
+    lista_pacientes
+
+)
 
 
-periodo = st.sidebar.date_input(
+if not lista_pacientes:
 
-    "Período de análise",
+    st.error(
+        "❌ Nenhum paciente encontrado na base."
+    )
 
-    value=(
+    st.stop()
 
-        data_min.date(),
 
-        data_max.date()
+paciente_selecionado = st.sidebar.selectbox(
 
-    ),
+    "Selecionar paciente",
 
-    min_value=data_min.date(),
-
-    max_value=data_max.date()
+    lista_pacientes
 
 )
 
 
 # ============================================================
-# DATAFRAME DO MONITORAMENTO
+# DADOS DO PACIENTE SELECIONADO
 # ============================================================
 
-df_monitoramento = df.copy()
+df_paciente = (
 
+    df[
 
-# ============================================================
-# FILTRO DE PACIENTE
-# ============================================================
-
-df_monitoramento = (
-
-    df_monitoramento[
-
-        df_monitoramento[
+        df[
             "id_paciente"
-        ]
+        ].astype(str)
 
         == paciente_selecionado
 
@@ -306,31 +400,132 @@ df_monitoramento = (
 
 
 # ============================================================
+# VALIDAÇÃO DO PACIENTE
+# ============================================================
+
+if df_paciente.empty:
+
+    st.error(
+        "❌ Não foram encontrados registros para este paciente."
+    )
+
+    st.stop()
+
+
+# ============================================================
+# PERÍODO DISPONÍVEL DO PACIENTE
+# ============================================================
+
+data_min_paciente = (
+
+    df_paciente[
+        "timestamp"
+    ]
+
+    .min()
+
+)
+
+
+data_max_paciente = (
+
+    df_paciente[
+        "timestamp"
+    ]
+
+    .max()
+
+)
+
+
+# ============================================================
 # FILTRO DE PERÍODO
 # ============================================================
 
-if periodo is not None and len(periodo) == 2:
+st.sidebar.divider()
 
 
-    data_inicio = pd.to_datetime(
+st.sidebar.subheader(
+    "📅 Período"
+)
+
+
+periodo = st.sidebar.date_input(
+
+    "Período de análise",
+
+    value=(
+
+        data_min_paciente.date(),
+
+        data_max_paciente.date()
+
+    ),
+
+    min_value=data_min_paciente.date(),
+
+    max_value=data_max_paciente.date()
+
+)
+
+
+# ============================================================
+# DATAFRAME DO MONITORAMENTO
+# ============================================================
+
+df_monitoramento = (
+
+    df_paciente
+
+    .copy()
+
+)
+
+
+# ============================================================
+# FILTRO DE PERÍODO
+# ============================================================
+
+if isinstance(
+
+    periodo,
+
+    tuple
+
+) and len(periodo) == 2:
+
+
+    data_inicio = pd.Timestamp(
 
         periodo[0]
 
     )
 
 
+    # ========================================================
+    # DATA FINAL
+    # ========================================================
+
+    # Utiliza o final do dia selecionado.
+
     data_fim = (
 
-        pd.to_datetime(
+        pd.Timestamp(
+
             periodo[1]
+
         )
 
         + pd.Timedelta(
+
             days=1
+
         )
 
         - pd.Timedelta(
-            seconds=1
+
+            microseconds=1
+
         )
 
     )
@@ -367,6 +562,25 @@ if periodo is not None and len(periodo) == 2:
         .copy()
 
     )
+
+
+# ============================================================
+# ORDENAÇÃO
+# ============================================================
+
+df_monitoramento = (
+
+    df_monitoramento
+
+    .sort_values(
+
+        "timestamp"
+
+    )
+
+    .copy()
+
+)
 
 
 # ============================================================
@@ -437,7 +651,9 @@ with col2:
         "Início do Período",
 
         primeiro_registro.strftime(
+
             "%d/%m/%Y %H:%M"
+
         )
 
     )
@@ -466,10 +682,28 @@ with col3:
         "Último Registro",
 
         ultimo_registro.strftime(
+
             "%d/%m/%Y %H:%M"
+
         )
 
     )
+
+
+# ============================================================
+# INFORMAÇÃO DO PERÍODO
+# ============================================================
+
+st.caption(
+
+    f"""
+    Período disponível para este paciente:
+    {data_min_paciente.strftime('%d/%m/%Y %H:%M')}
+    até
+    {data_max_paciente.strftime('%d/%m/%Y %H:%M')}
+    """
+
+)
 
 
 # ============================================================
@@ -481,7 +715,9 @@ registro_atual = (
     df_monitoramento
 
     .sort_values(
+
         "timestamp"
+
     )
 
     .tail(1)
@@ -504,14 +740,52 @@ st.subheader(
 
 
 st.caption(
+
     """
     Os valores abaixo correspondem ao último
     registro disponível no período selecionado.
     """
+
 )
 
 
 col1, col2, col3, col4 = st.columns(4)
+
+
+# ============================================================
+# FUNÇÃO AUXILIAR PARA MÉTRICAS
+# ============================================================
+
+def mostrar_metrica(
+
+    coluna,
+
+    titulo,
+
+    formato
+
+):
+
+
+    if coluna in registro_atual.index:
+
+
+        valor = registro_atual[
+            coluna
+        ]
+
+
+        if pd.notna(valor):
+
+
+            return formato.format(
+
+                valor
+
+            )
+
+
+    return "N/D"
 
 
 # ============================================================
@@ -521,45 +795,24 @@ col1, col2, col3, col4 = st.columns(4)
 with col1:
 
 
-    if "frequencia_cardiaca" in df_monitoramento.columns:
+    valor_fc = mostrar_metrica(
+
+        "frequencia_cardiaca",
+
+        "Frequência Cardíaca",
+
+        "{:.1f} bpm"
+
+    )
 
 
-        valor = registro_atual[
-            "frequencia_cardiaca"
-        ]
+    st.metric(
 
+        "❤️ Frequência Cardíaca",
 
-        if pd.notna(valor):
+        valor_fc
 
-            st.metric(
-
-                "❤️ Frequência Cardíaca",
-
-                f"{valor:.1f} bpm"
-
-            )
-
-
-        else:
-
-            st.metric(
-
-                "❤️ Frequência Cardíaca",
-
-                "N/D"
-
-            )
-
-
-    else:
-
-        st.metric(
-
-            "❤️ Frequência Cardíaca",
-
-            "N/D"
-
-        )
+    )
 
 
 # ============================================================
@@ -569,45 +822,24 @@ with col1:
 with col2:
 
 
-    if "saturacao_O2" in df_monitoramento.columns:
+    valor_spo2 = mostrar_metrica(
+
+        "saturacao_O2",
+
+        "Saturação",
+
+        "{:.1f}%"
+
+    )
 
 
-        valor = registro_atual[
-            "saturacao_O2"
-        ]
+    st.metric(
 
+        "⭕ Saturação de O₂",
 
-        if pd.notna(valor):
+        valor_spo2
 
-            st.metric(
-
-                "⭕ Saturação de O₂",
-
-                f"{valor:.1f}%"
-
-            )
-
-
-        else:
-
-            st.metric(
-
-                "⭕ Saturação de O₂",
-
-                "N/D"
-
-            )
-
-
-    else:
-
-        st.metric(
-
-            "⭕ Saturação de O₂",
-
-            "N/D"
-
-        )
+    )
 
 
 # ============================================================
@@ -617,45 +849,24 @@ with col2:
 with col3:
 
 
-    if "temperatura" in df_monitoramento.columns:
+    valor_temperatura = mostrar_metrica(
+
+        "temperatura",
+
+        "Temperatura",
+
+        "{:.1f} °C"
+
+    )
 
 
-        valor = registro_atual[
-            "temperatura"
-        ]
+    st.metric(
 
+        "🌡️ Temperatura",
 
-        if pd.notna(valor):
+        valor_temperatura
 
-            st.metric(
-
-                "🌡️ Temperatura",
-
-                f"{valor:.1f} °C"
-
-            )
-
-
-        else:
-
-            st.metric(
-
-                "🌡️ Temperatura",
-
-                "N/D"
-
-            )
-
-
-    else:
-
-        st.metric(
-
-            "🌡️ Temperatura",
-
-            "N/D"
-
-        )
+    )
 
 
 # ============================================================
@@ -665,45 +876,24 @@ with col3:
 with col4:
 
 
-    if "lactato" in df_monitoramento.columns:
+    valor_lactato = mostrar_metrica(
+
+        "lactato",
+
+        "Lactato",
+
+        "{:.2f}"
+
+    )
 
 
-        valor = registro_atual[
-            "lactato"
-        ]
+    st.metric(
 
+        "🧪 Lactato",
 
-        if pd.notna(valor):
+        valor_lactato
 
-            st.metric(
-
-                "🧪 Lactato",
-
-                f"{valor:.2f}"
-
-            )
-
-
-        else:
-
-            st.metric(
-
-                "🧪 Lactato",
-
-                "N/D"
-
-            )
-
-
-    else:
-
-        st.metric(
-
-            "🧪 Lactato",
-
-            "N/D"
-
-        )
+    )
 
 
 # ============================================================
@@ -724,14 +914,15 @@ def grafico_temporal(
 
 
     # ========================================================
-    # VALIDAÇÃO DA COLUNA
+    # VALIDAÇÃO
     # ========================================================
 
     if coluna not in dataframe.columns:
 
+
         st.warning(
 
-            f"{titulo}: dados não disponíveis."
+            f"⚠️ {titulo}: dados não disponíveis."
 
         )
 
@@ -739,7 +930,7 @@ def grafico_temporal(
 
 
     # ========================================================
-    # PREPARAÇÃO DOS DADOS
+    # PREPARAÇÃO
     # ========================================================
 
     dados_grafico = (
@@ -756,22 +947,36 @@ def grafico_temporal(
 
         ]
 
-        .dropna()
-
         .copy()
 
     )
 
 
+    dados_grafico = (
+
+        dados_grafico
+
+        .dropna()
+
+        .sort_values(
+
+            "timestamp"
+
+        )
+
+    )
+
+
     # ========================================================
-    # VALIDAÇÃO DOS DADOS
+    # VALIDAÇÃO
     # ========================================================
 
     if dados_grafico.empty:
 
+
         st.warning(
 
-            f"{titulo}: não há dados disponíveis."
+            f"⚠️ {titulo}: não há dados disponíveis."
 
         )
 
@@ -779,18 +984,7 @@ def grafico_temporal(
 
 
     # ========================================================
-    # ORDENAÇÃO TEMPORAL
-    # ========================================================
-
-    dados_grafico = dados_grafico.sort_values(
-
-        "timestamp"
-
-    )
-
-
-    # ========================================================
-    # CRIAÇÃO DO GRÁFICO
+    # GRÁFICO
     # ========================================================
 
     fig = px.line(
@@ -799,9 +993,7 @@ def grafico_temporal(
 
         x="timestamp",
 
-        y=coluna,
-
-        title=titulo
+        y=coluna
 
     )
 
@@ -827,6 +1019,8 @@ def grafico_temporal(
 
     fig.update_layout(
 
+        title=titulo,
+
         xaxis_title="Data / Hora",
 
         yaxis_title=eixo_y,
@@ -845,13 +1039,31 @@ def grafico_temporal(
 
         ),
 
-        hovermode="x unified",
+        hovermode="x unified"
 
-        xaxis=dict(
+    )
 
-            tickformat="%d/%m\n%H:%M"
 
-        )
+    # ========================================================
+    # EIXO X
+    # ========================================================
+
+    fig.update_xaxes(
+
+        tickformat="%d/%m\n%H:%M",
+
+        showgrid=True
+
+    )
+
+
+    # ========================================================
+    # EIXO Y
+    # ========================================================
+
+    fig.update_yaxes(
+
+        showgrid=True
 
     )
 
@@ -882,10 +1094,12 @@ st.header(
 
 
 st.caption(
+
     """
     Evolução temporal individual dos principais
-    sinais vitais do paciente.
+    sinais vitais do paciente selecionado.
     """
+
 )
 
 
@@ -937,6 +1151,16 @@ st.divider()
 
 st.subheader(
     "🩸 Pressão Arterial"
+)
+
+
+st.caption(
+
+    """
+    Visualização individual da pressão sistólica
+    e diastólica ao longo do período.
+    """
+
 )
 
 
@@ -1021,10 +1245,12 @@ st.header(
 
 
 st.caption(
+
     """
-    Evolução temporal dos exames laboratoriais
+    Evolução temporal dos indicadores laboratoriais
     disponíveis na base simulada.
     """
+
 )
 
 
@@ -1104,10 +1330,12 @@ st.header(
 
 
 st.caption(
+
     """
-    Evolução do score clínico calculado pelo
-    motor analítico.
+    Evolução temporal do score clínico calculado
+    pelo motor analítico.
     """
+
 )
 
 
@@ -1131,25 +1359,30 @@ grafico_temporal(
 if "classificacao_clinica" in registro_atual.index:
 
 
-    st.subheader(
-        "🚦 Classificação Atual"
-    )
-
-
     classificacao = registro_atual[
+
         "classificacao_clinica"
+
     ]
 
 
-    st.info(
+    if pd.notna(classificacao):
 
-        f"""
-        Situação clínica atual:
 
-        **{classificacao}**
-        """
+        st.subheader(
+            "🚦 Classificação Atual"
+        )
 
-    )
+
+        st.info(
+
+            f"""
+            Situação clínica atual:
+
+            **{classificacao}**
+            """
+
+        )
 
 
 # ============================================================
@@ -1171,10 +1404,14 @@ with st.expander(
     colunas_monitoramento = [
 
 
+        # IDENTIFICAÇÃO
+
         "id_paciente",
 
         "timestamp",
 
+
+        # SINAIS VITAIS
 
         "frequencia_cardiaca",
 
@@ -1187,12 +1424,16 @@ with st.expander(
         "temperatura",
 
 
+        # LABORATORIAIS
+
         "lactato",
 
         "leucocitos",
 
         "creatinina",
 
+
+        # MOTOR ANALÍTICO
 
         "score_clinico",
 
@@ -1216,7 +1457,9 @@ with st.expander(
     st.dataframe(
 
         df_monitoramento[
+
             colunas_disponiveis
+
         ],
 
         use_container_width=True,
@@ -1242,25 +1485,148 @@ with st.expander(
 ):
 
 
+    # ========================================================
+    # STATUS DA CONVERSÃO
+    # ========================================================
+
+    st.subheader(
+        "Status da conversão temporal"
+    )
+
+
+    st.success(
+        "✓ Timestamp convertido utilizando formato DD/MM/AAAA HH:MM"
+    )
+
+
+    # ========================================================
+    # DATAS INVÁLIDAS
+    # ========================================================
+
+    if quantidade_timestamps_invalidos == 0:
+
+
+        st.success(
+            "✓ Nenhum timestamp inválido encontrado"
+        )
+
+
+    else:
+
+
+        st.warning(
+
+            f"""
+            ⚠️ Foram encontrados
+            {quantidade_timestamps_invalidos}
+            timestamps inválidos.
+            """
+
+        )
+
+
+    # ========================================================
+    # INFORMAÇÕES
+    # ========================================================
+
+    st.subheader(
+        "Informações do monitoramento"
+    )
+
+
     st.write(
 
         f"""
         **Paciente selecionado:** {paciente_selecionado}
 
-        **Total de registros utilizados:**
-        {len(df_monitoramento)}
+        **Total de registros utilizados:** {len(df_monitoramento)}
 
-        **Primeiro timestamp:**
-        {df_monitoramento['timestamp'].min()}
+        **Primeiro timestamp selecionado:**
+        {df_monitoramento['timestamp'].min().strftime('%d/%m/%Y %H:%M')}
 
-        **Último timestamp:**
-        {df_monitoramento['timestamp'].max()}
+        **Último timestamp selecionado:**
+        {df_monitoramento['timestamp'].max().strftime('%d/%m/%Y %H:%M')}
 
-        **Período total disponível:**
-        {data_min.strftime('%d/%m/%Y')}
+        **Período total da base:**
+        {data_min.strftime('%d/%m/%Y %H:%M')}
         até
-        {data_max.strftime('%d/%m/%Y')}
+        {data_max.strftime('%d/%m/%Y %H:%M')}
+
+        **Período disponível do paciente:**
+        {data_min_paciente.strftime('%d/%m/%Y %H:%M')}
+        até
+        {data_max_paciente.strftime('%d/%m/%Y %H:%M')}
         """
+
+    )
+
+
+    # ========================================================
+    # TIPO DO TIMESTAMP
+    # ========================================================
+
+    st.subheader(
+        "Tipo da coluna timestamp"
+    )
+
+
+    st.code(
+
+        str(
+
+            df[
+                "timestamp"
+            ].dtype
+
+        )
+
+    )
+
+
+    # ========================================================
+    # AMOSTRA TEMPORAL
+    # ========================================================
+
+    st.subheader(
+        "Amostra dos registros temporais"
+    )
+
+
+    colunas_diagnostico = [
+
+        "id_paciente",
+
+        "timestamp_original",
+
+        "timestamp"
+
+    ]
+
+
+    colunas_diagnostico = [
+
+        coluna
+
+        for coluna in colunas_diagnostico
+
+        if coluna in df.columns
+
+    ]
+
+
+    st.dataframe(
+
+        df[
+
+            colunas_diagnostico
+
+        ]
+
+        .head(15),
+
+        use_container_width=True,
+
+        hide_index=True
 
     )
 
@@ -1281,8 +1647,9 @@ st.info(
     simulados e possuem finalidade exclusivamente
     educacional e conceitual.
 
-    Este sistema não deve ser utilizado para tomada
-    de decisão clínica real.
+    Os indicadores e scores apresentados não constituem
+    um sistema clínico validado e não devem ser utilizados
+    para tomada de decisão clínica real.
     """
 
 )
