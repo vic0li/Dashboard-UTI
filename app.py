@@ -20,8 +20,8 @@ from utils.styling import aplicar_estilo
 # ============================================================
 
 st.set_page_config(
-    page_title="UTI Intelligent Care",
-    page_icon="🏥",
+    page_title="Dashboard Gestão da UTI",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -199,7 +199,7 @@ with c4:
 # ============================================================
 
 st.markdown("---")
-st.header("🏥 Motivo de Internação (Diagnóstico Principal)")
+st.header(" Motivo de Internação")
 st.caption("Distribuição dos principais motivos e diagnósticos que motivaram a admissão dos pacientes na UTI.")
 
 col_diag1, col_diag2 = st.columns([1.2, 1])
@@ -234,7 +234,7 @@ with col_diag2:
 # ============================================================
 
 st.markdown("---")
-st.header("🔬 Validação do Motor Analítico")
+st.header(" Validação do Motor Analítico")
 st.write(
     """
     Esta seção verifica se as variáveis derivadas foram criadas
@@ -244,7 +244,7 @@ st.write(
 )
 
 # 1. VERIFICAÇÃO DAS VARIÁVEIS
-st.subheader("1️⃣ Verificação das Variáveis Geradas")
+st.subheader(" Verificação das Variáveis Geradas")
 
 colunas_motor = [
     "score_clinico",
@@ -267,13 +267,13 @@ for coluna in colunas_motor:
 
 # 2. ESTATÍSTICAS DOS SCORES
 st.markdown("---")
-st.subheader("2️⃣ Estatísticas dos Scores")
+st.subheader(" Estatísticas dos Scores")
 st.caption("Estatísticas calculadas sobre a situação atual de cada paciente.")
 
 s1, s2, s3 = st.columns(3)
 
 with s1:
-    st.markdown("##### 🩺 Score Clínico")
+    st.markdown("#####  Score Clínico")
     if "score_clinico" in df_pacientes.columns:
         st.metric("Mínimo", f"{df_pacientes['score_clinico'].min():.1f}")
         st.metric("Máximo", f"{df_pacientes['score_clinico'].max():.1f}")
@@ -282,7 +282,7 @@ with s1:
         st.warning("N/D")
 
 with s2:
-    st.markdown("##### 🩹 Score LPP")
+    st.markdown("#####  Score LPP")
     if "score_lpp" in df_pacientes.columns:
         st.metric("Mínimo", f"{df_pacientes['score_lpp'].min():.1f}")
         st.metric("Máximo", f"{df_pacientes['score_lpp'].max():.1f}")
@@ -301,7 +301,7 @@ with s3:
 
 # 3. DISTRIBUIÇÃO DAS CLASSIFICAÇÕES
 st.markdown("---")
-st.subheader("3️⃣ Distribuição Atual dos Pacientes")
+st.subheader(" Distribuição Atual dos Pacientes")
 st.caption("Cada paciente é contabilizado apenas uma vez, utilizando seu registro mais recente.")
 
 d1, d2, d3 = st.columns(3)
@@ -335,7 +335,7 @@ with d3:
 
 # 4. VERIFICAÇÃO DE DADOS NULOS
 st.markdown("---")
-st.subheader("4️⃣ Verificação de Dados Nulos")
+st.subheader(" Verificação de Dados Nulos")
 
 colunas_validacao = [
     "score_clinico",
@@ -355,7 +355,7 @@ for coluna in colunas_validacao:
 
 # 5. AUDITORIA DOS RESULTADOS
 st.markdown("---")
-st.subheader("5️⃣ Auditoria dos Resultados")
+st.subheader(" Auditoria dos Resultados")
 st.caption("Visualização dos dados de entrada e das variáveis geradas pelo motor analítico.")
 
 colunas_auditoria = [
@@ -379,7 +379,7 @@ else:
 
 # 6. PACIENTES COM MAIOR PRIORIDADE
 st.markdown("---")
-st.subheader("6️⃣ Pacientes com Maior Prioridade")
+st.subheader(" Pacientes com Maior Prioridade")
 st.caption("Cada paciente aparece apenas uma vez. A classificação considera o último registro disponível.")
 
 if "indice_prioridade" in df_pacientes.columns:
@@ -398,7 +398,7 @@ else:
 
 # 7. RELAÇÃO ENTRE SCORE CLÍNICO E SCORE LPP
 st.markdown("---")
-st.subheader("7️⃣ Relação entre Risco Clínico e Risco de LPP")
+st.subheader(" Relação entre Risco Clínico e Risco de LPP")
 st.caption(
     """
     Cada ponto representa um paciente.
