@@ -1184,39 +1184,6 @@ filtro_prioridade = st.sidebar.selectbox(
 
 
 # ============================================================
-# FILTRO DIAGNÓSTICO INICIAL
-# ============================================================
-
-COLUNA_DIAGNOSTICO_INICIAL = "diagnostico_principal"
-
-if COLUNA_DIAGNOSTICO_INICIAL in df.columns:
-
-    opcoes_diagnostico = (
-        ["Todos"]
-        + sorted(
-            df[COLUNA_DIAGNOSTICO_INICIAL]
-            .dropna()
-            .astype(str)
-            .unique()
-            .tolist()
-        )
-    )
-
-    filtro_diagnostico = st.sidebar.selectbox(
-        "🏥 Diagnóstico inicial",
-        options=opcoes_diagnostico
-    )
-
-else:
-
-    filtro_diagnostico = "Todos"
-
-    st.sidebar.caption(
-        "ℹ️ Coluna 'diagnostico_inicial' não disponível."
-    )
-
-
-# ============================================================
 # FILTROS ATIVOS
 # ============================================================
 
@@ -1263,15 +1230,6 @@ if filtro_prioridade != "Todas":
     filtros_ativos.append(
 
         f"Prioridade: {filtro_prioridade}"
-
-    )
-
-
-if filtro_diagnostico != "Todos":
-
-    filtros_ativos.append(
-
-        f"Diagnóstico: {filtro_diagnostico}"
 
     )
 
@@ -1394,27 +1352,6 @@ if filtro_prioridade != "Todas":
             .astype(str)
 
             == filtro_prioridade
-
-        ]
-
-
-# ============================================================
-# FILTRO DIAGNÓSTICO INICIAL
-# ============================================================
-
-if filtro_diagnostico != "Todos":
-
-    if COLUNA_DIAGNOSTICO_INICIAL in df_filtrado.columns:
-
-        df_filtrado = df_filtrado[
-
-            df_filtrado[
-                COLUNA_DIAGNOSTICO_INICIAL
-            ]
-
-            .astype(str)
-
-            == filtro_diagnostico
 
         ]
 
@@ -2104,211 +2041,169 @@ else:
 
 
 # ============================================================
-# MOTIVOS DE INTERNAÇÃO
+# MOTIVOS DE INTERNAÇÃO / DIAGNÓSTICO INICIAL
+# ============================================================
+# Gráfico baseado na situação mais recente de cada paciente.
+# A coluna principal utilizada é "diagnostico_inicial".
 # ============================================================
 
-possiveis_colunas_motivo = [
+COLUNA_DIAGNOSTICO_INICIAL = "diagnostico_principal"
 
-    "motivo_internacao",
+st.divider()
 
-    "motivo_de_internacao",
+st.header(
+    "🏥 Motivos de Internação"
+)
 
-    "Motivo de Internação",
+st.caption(
+    "Distribuição dos diagnósticos iniciais dos pacientes, considerando o último registro disponível de cada paciente."
+)
 
-    "motivo",
-
-    "diagnostico_inicial",
-
-    "diagnóstico_inicial",
-
-    "Diagnóstico Inicial",
-
-    "diagnostico",
-
-    "diagnóstico"
-
-]
-
-
-coluna_motivo = None
-
-
-for coluna in possiveis_colunas_motivo:
-
-
-    if coluna in df_pacientes.columns:
-
-        coluna_motivo = coluna
-
-        break
-
-
-# ============================================================
-# EXIBIÇÃO DOS MOTIVOS
-# ============================================================
-
-if coluna_motivo is not None:
-
-
-    st.divider()
-
-
-    st.header(
-        "🏥 Motivos de Internação / Diagnóstico Inicial"
-    )
-
-
-    st.caption(
-        """
-        Principais motivos registrados para internação,
-        considerando o último registro disponível
-        de cada paciente.
-        """
-    )
-
+if COLUNA_DIAGNOSTICO_INICIAL in df_pacientes.columns:
 
     df_motivos = (
-
         df_pacientes[
-            coluna_motivo
+            COLUNA_DIAGNOSTICO_INICIAL
         ]
-
         .dropna()
-
         .astype(str)
-
-        .value_counts()
-
-        .reset_index()
-
+        .str.strip()
     )
 
-
-    df_motivos.columns = [
-
-        "Motivo",
-
-        "Quantidade"
-
+    df_motivos = df_motivos[
+        df_motivos != ""
     ]
 
+    if not df_motivos.empty:
 
-    # ========================================================
-    # ORDENAÇÃO
-    #
-    # Mantém os maiores valores no topo
-    # ========================================================
-
-    df_motivos = (
-
-        df_motivos
-
-        .sort_values(
-
-            "Quantidade",
-
-            ascending=True
-
+        df_motivos = (
+            df_motivos
+            .value_counts()
+            .reset_index()
         )
 
-    )
-
-
-    # ========================================================
-    # GRÁFICO
-    # ========================================================
-
-    fig_motivos = px.bar(
-
-        df_motivos,
-
-        x="Quantidade",
-
-        y="Motivo",
-
-        orientation="h",
-
-        text="Quantidade",
-
-        color_discrete_sequence=[
-            AZUL_PRINCIPAL
+        df_motivos.columns = [
+            "Diagnóstico Inicial",
+            "Quantidade"
         ]
 
-    )
+        total_motivos = df_motivos["Quantidade"].sum()
 
+        df_motivos["Porcentagem"] = (
+            df_motivos["Quantidade"]
+            / total_motivos
+            * 100
+        ).round(1)
 
-    fig_motivos.update_traces(
+        df_motivos["Rótulo"] = (
+            df_motivos["Quantidade"].astype(str)
+            + " ("
+            + df_motivos["Porcentagem"].map(
+                lambda valor: f"{valor:.1f}%".replace(".", ",")
+            )
+            + ")"
+        )
 
-        textposition="outside",
+        # Ordenação crescente para que o maior valor fique no topo
+        df_motivos = (
+            df_motivos
+            .sort_values(
+                "Quantidade",
+                ascending=True
+            )
+        )
 
-        cliponaxis=False,
+        # Paleta azul mais sofisticada e com melhor contraste visual
+        cores_motivos = [
+            "#0F3D5E",
+            "#145DA0",
+            "#1E81B0",
+            "#2E8BC0",
+            "#4DA8DA",
+            "#7CC4E4",
+            "#A9D6E5"
+        ]
 
-        marker_line_width=0
+        cores_barras = [
+            cores_motivos[i % len(cores_motivos)]
+            for i in range(len(df_motivos))
+        ]
 
-    )
+        fig_motivos = px.bar(
+            df_motivos,
+            x="Quantidade",
+            y="Diagnóstico Inicial",
+            orientation="h",
+            text="Rótulo",
+            custom_data=["Porcentagem"]
+        )
 
+        fig_motivos.update_traces(
+            textposition="outside",
+            cliponaxis=False,
+            marker_color=cores_barras,
+            marker_line_color="#FFFFFF",
+            marker_line_width=1.2,
+            hovertemplate=(
+                "<b>%{y}</b><br>"
+                "Pacientes: %{x}<br>"
+                "Percentual: %{customdata[0]:.1f}%"
+                "<extra></extra>"
+            )
+        )
 
-    fig_motivos.update_layout(
+        fig_motivos.update_layout(
+            paper_bgcolor="#FFFFFF",
+            plot_bgcolor="#FFFFFF",
+            height=max(
+                380,
+                len(df_motivos) * 58
+            ),
+            margin=dict(
+                l=20,
+                r=100,
+                t=20,
+                b=40
+            ),
+            showlegend=False,
+            font=dict(
+                family="Arial",
+                color="#374151"
+            )
+        )
 
-        paper_bgcolor="#FFFFFF",
+        fig_motivos.update_xaxes(
+            showgrid=True,
+            gridcolor="#E8EEF5",
+            zeroline=False,
+            title="Quantidade de pacientes"
+        )
 
-        plot_bgcolor="#FFFFFF",
+        fig_motivos.update_yaxes(
+            showgrid=False,
+            title=None
+        )
 
-        height=max(
+        st.plotly_chart(
+            fig_motivos,
+            use_container_width=True,
+            key="grafico_motivos_internacao"
+        )
 
-            350,
+        st.caption(
+            "💡 Os rótulos mostram **quantidade de pacientes (percentual do total)**."
+        )
 
-            len(df_motivos) * 55
+    else:
 
-        ),
+        st.warning(
+            "⚠️ Não há valores válidos em 'diagnostico_inicial'."
+        )
 
-        margin=dict(
+else:
 
-            l=30,
-
-            r=60,
-
-            t=30,
-
-            b=30
-
-        ),
-
-        showlegend=False
-
-    )
-
-
-    fig_motivos.update_xaxes(
-
-        showgrid=True,
-
-        gridcolor=CINZA_GRID,
-
-        zeroline=False,
-
-        title=None
-
-    )
-
-
-    fig_motivos.update_yaxes(
-
-        showgrid=False,
-
-        title=None
-
-    )
-
-
-    st.plotly_chart(
-
-        fig_motivos,
-
-        use_container_width=True,
-
-        key="grafico_motivos_internacao"
-
+    st.warning(
+        "⚠️ A coluna 'diagnostico_inicial' não foi encontrada na base de dados."
     )
 
 
