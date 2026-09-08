@@ -5,15 +5,7 @@
 # Visão integrada dos indicadores clínicos, risco de LPP,
 # alertas e priorização de pacientes.
 #
-# IMPORTANTE:
-# - A base possui registros temporais
-# - Um mesmo paciente pode aparecer diversas vezes
-#
-# Por isso:
-# - KPIs utilizam pacientes únicos
-# - Gráficos utilizam o último registro de cada paciente
-# - Histórico mantém os registros temporais
-# ============================================================
+
 
 
 # ============================================================
