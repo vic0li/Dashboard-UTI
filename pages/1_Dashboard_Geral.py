@@ -23,11 +23,11 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 
 from utils.data_loader import load_data
 from utils.analytics import processar_dados
 from utils.risk_engine import processar_riscos
+from utils.styling import aplicar_estilo
 
 
 # ============================================================
@@ -37,273 +37,394 @@ from utils.risk_engine import processar_riscos
 st.set_page_config(
     page_title="Dashboard Geral | UTI Intelligent Care",
     page_icon="📊",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="wide"
+)
+
+
+# ============================================================
+# ESTILO BASE
+# ============================================================
+
+aplicar_estilo()
+
+
+# ============================================================
+# AJUSTES VISUAIS COMPLEMENTARES
+#
+# Visual padronizado com a página:
+# MONITORAMENTO CLÍNICO
+#
+# Fundo claro
+# Sidebar azul
+# KPIs profissionais
+# Gráficos em tons de azul
+# ============================================================
+
+st.markdown(
+    """
+    <style>
+
+    /* =======================================================
+    FUNDO PRINCIPAL
+    ======================================================= */
+
+    .stApp {
+        background-color: #F7F9FC !important;
+        color: #1F2937 !important;
+    }
+
+    .main {
+        background-color: #F7F9FC !important;
+    }
+
+    .main .block-container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+        max-width: 1500px;
+    }
+
+
+    /* =======================================================
+    TEXTOS
+    ======================================================= */
+
+    h1,
+    h2,
+    h3 {
+        color: #1E3A5F !important;
+    }
+
+    p,
+    span,
+    label,
+    .stMarkdown,
+    .stMarkdown p {
+        color: #374151;
+    }
+
+
+    /* =======================================================
+    SIDEBAR
+    ======================================================= */
+
+    section[data-testid="stSidebar"] {
+        background: linear-gradient(
+            180deg,
+            #1E3A5F 0%,
+            #274C77 100%
+        ) !important;
+
+        border-right: 1px solid #D1D5DB;
+    }
+
+
+    section[data-testid="stSidebar"] h1,
+    section[data-testid="stSidebar"] h2,
+    section[data-testid="stSidebar"] h3,
+    section[data-testid="stSidebar"] p,
+    section[data-testid="stSidebar"] span,
+    section[data-testid="stSidebar"] label,
+    section[data-testid="stSidebar"] div {
+        color: #FFFFFF !important;
+    }
+
+
+    /* =======================================================
+    INPUT DE BUSCA
+    ======================================================= */
+
+    section[data-testid="stSidebar"] input {
+        background-color: #FFFFFF !important;
+        color: #1F2937 !important;
+
+        -webkit-text-fill-color: #1F2937 !important;
+
+        border: 1px solid #93C5FD !important;
+
+        border-radius: 8px !important;
+    }
+
+    section[data-testid="stSidebar"] input::placeholder {
+        color: #6B7280 !important;
+        opacity: 1 !important;
+    }
+
+
+    /* =======================================================
+    SELECTBOX
+    ======================================================= */
+
+    section[data-testid="stSidebar"]
+    div[data-baseweb="select"] > div {
+
+        background-color: #FFFFFF !important;
+
+        border: 1px solid #93C5FD !important;
+
+        border-radius: 8px !important;
+    }
+
+
+    section[data-testid="stSidebar"]
+    div[data-baseweb="select"] * {
+
+        color: #1F2937 !important;
+    }
+
+
+    section[data-testid="stSidebar"]
+    div[data-baseweb="select"] svg {
+
+        fill: #2563EB !important;
+    }
+
+
+    /* =======================================================
+    MENU DO SELECTBOX
+    ======================================================= */
+
+    div[role="listbox"] {
+
+        background-color: #FFFFFF !important;
+
+        border: 1px solid #93C5FD !important;
+    }
+
+
+    div[role="option"] {
+
+        background-color: #FFFFFF !important;
+
+        color: #1F2937 !important;
+    }
+
+
+    div[role="option"] * {
+
+        color: #1F2937 !important;
+    }
+
+
+    div[role="option"]:hover {
+
+        background-color: #EFF6FF !important;
+
+        color: #1E3A5F !important;
+    }
+
+
+    /* =======================================================
+    KPIs / MÉTRICAS
+    ======================================================= */
+
+    div[data-testid="stMetric"] {
+
+        background-color: #FFFFFF !important;
+
+        border: 1px solid #D1D5DB !important;
+
+        border-left: 4px solid #2563EB !important;
+
+        border-radius: 10px !important;
+
+        padding: 16px !important;
+
+        box-shadow:
+            0 2px 8px rgba(
+                31,
+                41,
+                55,
+                0.08
+            );
+    }
+
+
+    div[data-testid="stMetricLabel"],
+    div[data-testid="stMetricLabel"] p {
+
+        color: #4B5563 !important;
+
+        font-weight: 600 !important;
+    }
+
+
+    div[data-testid="stMetricValue"],
+    div[data-testid="stMetricValue"] div {
+
+        color: #1E3A5F !important;
+
+        font-weight: 700 !important;
+    }
+
+
+    /* =======================================================
+    EXPANDERS
+    ======================================================= */
+
+    details {
+
+        background-color: #FFFFFF !important;
+
+        border: 1px solid #D1D5DB !important;
+
+        border-radius: 10px !important;
+    }
+
+
+    details summary {
+
+        color: #1E3A5F !important;
+
+        font-weight: 600 !important;
+    }
+
+
+    /* =======================================================
+    ALERTAS
+    ======================================================= */
+
+    div[data-testid="stAlert"] {
+
+        border-radius: 10px;
+    }
+
+
+    /* =======================================================
+    DIVISORES
+    ======================================================= */
+
+    hr {
+
+        border-color: #D1D5DB !important;
+    }
+
+
+    /* =======================================================
+    DATAFRAME
+    ======================================================= */
+
+    div[data-testid="stDataFrame"] {
+
+        border: 1px solid #D1D5DB;
+
+        border-radius: 8px;
+
+        overflow: hidden;
+
+        background-color: #FFFFFF;
+    }
+
+
+    /* =======================================================
+    GRÁFICOS
+    ======================================================= */
+
+    div[data-testid="stPlotlyChart"] {
+
+        background-color: #FFFFFF;
+
+        border-radius: 10px;
+    }
+
+
+    /* =======================================================
+    BOTÕES
+    ======================================================= */
+
+    .stButton > button {
+
+        background-color: #2563EB !important;
+
+        color: #FFFFFF !important;
+
+        border: 1px solid #1D4ED8 !important;
+
+        border-radius: 8px !important;
+    }
+
+
+    .stButton > button:hover {
+
+        background-color: #1D4ED8 !important;
+
+        color: #FFFFFF !important;
+    }
+
+
+    /* =======================================================
+    SIDEBAR DIVIDER
+    ======================================================= */
+
+    section[data-testid="stSidebar"] hr {
+
+        border-color: rgba(
+            255,
+            255,
+            255,
+            0.25
+        ) !important;
+    }
+
+
+    /* =======================================================
+    CAPTION DA SIDEBAR
+    ======================================================= */
+
+    section[data-testid="stSidebar"]
+    [data-testid="stCaptionContainer"] {
+
+        color: #DCE6F2 !important;
+    }
+
+
+    section[data-testid="stSidebar"]
+    [data-testid="stCaptionContainer"] p {
+
+        color: #DCE6F2 !important;
+    }
+
+    </style>
+    """,
+    unsafe_allow_html=True
 )
 
 
 # ============================================================
 # PALETA DE CORES
+#
+# Tons padronizados de azul para manter consistência visual
 # ============================================================
 
-CORES = {
+AZUL_ESCURO = "#1E3A5F"
 
-    "azul_escuro": "#12355B",
-    "azul_principal": "#1F5F99",
-    "azul_medio": "#4A90C2",
-    "azul_claro": "#78B5DD",
-    "azul_muito_claro": "#DCECF7",
+AZUL_PRINCIPAL = "#2563EB"
 
-    "branco": "#FFFFFF",
+AZUL_MEDIO = "#3B82F6"
 
-    "cinza_fundo": "#F5F7FA",
-    "cinza_card": "#F8FAFC",
+AZUL_CLARO = "#60A5FA"
 
-    "cinza_texto": "#64748B",
-    "cinza_escuro": "#334155",
+AZUL_MUITO_CLARO = "#93C5FD"
 
-    "cinza_borda": "#E2E8F0",
+AZUL_SUAVE = "#DBEAFE"
 
-    "verde": "#2E8B57",
-    "laranja": "#E6A23C",
-    "vermelho": "#D9534F"
-}
+CINZA_TEXTO = "#4B5563"
+
+CINZA_GRID = "#E5E7EB"
 
 
 PALETA_AZUL = [
 
-    "#12355B",
-    "#1F5F99",
-    "#4A90C2",
-    "#78B5DD",
-    "#A8D0E6"
+    "#1E3A5F",
+
+    "#2563EB",
+
+    "#3B82F6",
+
+    "#60A5FA",
+
+    "#93C5FD"
 
 ]
-
-
-# ============================================================
-# CSS PERSONALIZADO
-# ============================================================
-
-st.markdown(
-    f"""
-
-<style>
-
-/* ========================================================= */
-/* FUNDO PRINCIPAL */
-/* ========================================================= */
-
-.stApp {{
-    background-color: {CORES["cinza_fundo"]};
-}}
-
-
-/* ========================================================= */
-/* CONTAINER PRINCIPAL */
-/* ========================================================= */
-
-.block-container {{
-    padding-top: 2rem;
-    padding-bottom: 2rem;
-    max-width: 1500px;
-}}
-
-
-/* ========================================================= */
-/* TÍTULOS */
-/* ========================================================= */
-
-h1 {{
-    color: {CORES["azul_escuro"]};
-    font-weight: 700;
-}}
-
-h2 {{
-    color: {CORES["azul_escuro"]};
-}}
-
-h3 {{
-    color: {CORES["azul_escuro"]};
-}}
-
-
-/* ========================================================= */
-/* SIDEBAR */
-/* ========================================================= */
-
-[data-testid="stSidebar"] {{
-    background-color: {CORES["branco"]};
-    border-right: 1px solid {CORES["cinza_borda"]};
-}}
-
-
-/* ========================================================= */
-/* LABELS DOS FILTROS */
-/* ========================================================= */
-
-[data-testid="stSidebar"] label {{
-    color: {CORES["azul_escuro"]} !important;
-    font-weight: 600 !important;
-}}
-
-
-/* ========================================================= */
-/* SELECTBOX */
-/* ========================================================= */
-
-[data-testid="stSidebar"] div[data-baseweb="select"] > div {{
-    background-color: white;
-    border-color: {CORES["cinza_borda"]};
-    color: {CORES["cinza_escuro"]};
-}}
-
-
-/* TEXTO SELECIONADO SEMPRE VISÍVEL */
-
-[data-testid="stSidebar"] div[data-baseweb="select"] span {{
-    color: {CORES["cinza_escuro"]} !important;
-    opacity: 1 !important;
-}}
-
-
-/* ========================================================= */
-/* INPUT */
-/* ========================================================= */
-
-[data-testid="stSidebar"] input {{
-    color: {CORES["cinza_escuro"]} !important;
-    background-color: white !important;
-}}
-
-
-/* ========================================================= */
-/* MÉTRICAS NATIVAS */
-/* ========================================================= */
-
-[data-testid="stMetric"] {{
-    background-color: white;
-    border: 1px solid {CORES["cinza_borda"]};
-    border-radius: 12px;
-    padding: 18px;
-}}
-
-[data-testid="stMetricLabel"] {{
-    color: {CORES["cinza_texto"]};
-    font-weight: 600;
-}}
-
-[data-testid="stMetricValue"] {{
-    color: {CORES["azul_escuro"]};
-    font-weight: 700;
-}}
-
-
-/* ========================================================= */
-/* DIVISORES */
-/* ========================================================= */
-
-hr {{
-    border-color: {CORES["cinza_borda"]};
-}}
-
-
-/* ========================================================= */
-/* TABELAS */
-/* ========================================================= */
-
-[data-testid="stDataFrame"] {{
-    background-color: white;
-    border-radius: 10px;
-}}
-
-
-/* ========================================================= */
-/* EXPANDERS */
-/* ========================================================= */
-
-.streamlit-expanderHeader {{
-    background-color: white;
-    border-radius: 8px;
-    color: {CORES["azul_escuro"]};
-    font-weight: 600;
-}}
-
-
-/* ========================================================= */
-/* CARD PERSONALIZADO */
-/* ========================================================= */
-
-.kpi-card {{
-    background-color: white;
-    border: 1px solid {CORES["cinza_borda"]};
-    border-radius: 14px;
-    padding: 20px;
-    min-height: 125px;
-
-    box-shadow:
-        0px 2px 6px rgba(15, 23, 42, 0.04);
-}}
-
-
-.kpi-title {{
-    font-size: 14px;
-    color: {CORES["cinza_texto"]};
-    font-weight: 600;
-    margin-bottom: 10px;
-}}
-
-
-.kpi-value {{
-    font-size: 30px;
-    color: {CORES["azul_escuro"]};
-    font-weight: 700;
-}}
-
-
-.kpi-subtitle {{
-    font-size: 12px;
-    color: {CORES["cinza_texto"]};
-    margin-top: 5px;
-}}
-
-
-/* ========================================================= */
-/* SEÇÃO */
-/* ========================================================= */
-
-.section-title {{
-    font-size: 22px;
-    font-weight: 700;
-    color: {CORES["azul_escuro"]};
-    margin-bottom: 4px;
-}}
-
-
-.section-subtitle {{
-    font-size: 14px;
-    color: {CORES["cinza_texto"]};
-    margin-bottom: 20px;
-}}
-
-
-/* ========================================================= */
-/* CARD DOS GRÁFICOS */
-/* ========================================================= */
-
-.chart-card {{
-    background-color: white;
-    border: 1px solid {CORES["cinza_borda"]};
-    border-radius: 14px;
-    padding: 15px;
-}}
-
-</style>
-
-""",
-
-    unsafe_allow_html=True
-)
 
 
 # ============================================================
@@ -317,16 +438,27 @@ def converter_timestamp(serie):
 
     DD/MM/AAAA HH:MM
 
-    Caso existam formatos alternativos na base,
-    tenta uma conversão secundária utilizando dayfirst=True.
+    Também aceita:
+
+    DD/MM/AAAA HH:MM:SS
+
+    Caso existam formatos alternativos,
+    realiza uma tentativa adicional
+    utilizando dayfirst=True.
     """
 
-    serie_original = serie.copy()
+    serie_original = (
+        serie
+        .astype(str)
+        .str.strip()
+    )
 
-    # --------------------------------------------------------
+
+    # ========================================================
     # PRIMEIRA TENTATIVA
-    # FORMATO BRASILEIRO EXPLÍCITO
-    # --------------------------------------------------------
+    #
+    # DD/MM/AAAA HH:MM
+    # ========================================================
 
     serie_convertida = pd.to_datetime(
 
@@ -339,18 +471,25 @@ def converter_timestamp(serie):
     )
 
 
-    # --------------------------------------------------------
+    # ========================================================
     # SEGUNDA TENTATIVA
-    # FORMATO COM SEGUNDOS
-    # --------------------------------------------------------
+    #
+    # DD/MM/AAAA HH:MM:SS
+    # ========================================================
 
-    mascara_invalida = serie_convertida.isna()
+    mascara_invalida = (
+        serie_convertida
+        .isna()
+    )
+
 
     if mascara_invalida.any():
 
         tentativa = pd.to_datetime(
 
-            serie_original.loc[mascara_invalida],
+            serie_original.loc[
+                mascara_invalida
+            ],
 
             format="%d/%m/%Y %H:%M:%S",
 
@@ -358,21 +497,31 @@ def converter_timestamp(serie):
 
         )
 
-        serie_convertida.loc[mascara_invalida] = tentativa
+
+        serie_convertida.loc[
+            mascara_invalida
+        ] = tentativa
 
 
-    # --------------------------------------------------------
+    # ========================================================
     # TERCEIRA TENTATIVA
-    # CONVERSÃO FLEXÍVEL COM DAYFIRST
-    # --------------------------------------------------------
+    #
+    # CONVERSÃO FLEXÍVEL
+    # ========================================================
 
-    mascara_invalida = serie_convertida.isna()
+    mascara_invalida = (
+        serie_convertida
+        .isna()
+    )
+
 
     if mascara_invalida.any():
 
         tentativa = pd.to_datetime(
 
-            serie_original.loc[mascara_invalida],
+            serie_original.loc[
+                mascara_invalida
+            ],
 
             errors="coerce",
 
@@ -380,14 +529,17 @@ def converter_timestamp(serie):
 
         )
 
-        serie_convertida.loc[mascara_invalida] = tentativa
+
+        serie_convertida.loc[
+            mascara_invalida
+        ] = tentativa
 
 
     return serie_convertida
 
 
 # ============================================================
-# FUNÇÃO PARA FORMATAR DATA
+# FUNÇÃO PARA FORMATAR TIMESTAMP
 # ============================================================
 
 def formatar_timestamp(data):
@@ -396,27 +548,30 @@ def formatar_timestamp(data):
 
         return "N/D"
 
-    return data.strftime("%d/%m/%Y %H:%M")
+
+    return data.strftime(
+        "%d/%m/%Y %H:%M"
+    )
 
 
 # ============================================================
-# FUNÇÃO PARA OBTER ÚLTIMO REGISTRO
+# FUNÇÃO PARA OBTER O ÚLTIMO REGISTRO
+# DE CADA PACIENTE
 # ============================================================
 
 def obter_ultimo_registro_por_paciente(dataframe):
 
     """
-    Retorna uma visão consolidada contendo
-    apenas o último registro disponível
-    de cada paciente.
+    Retorna apenas o último registro temporal
+    disponível para cada paciente.
     """
 
     df_temp = dataframe.copy()
 
 
-    # --------------------------------------------------------
+    # ========================================================
     # VALIDAÇÃO
-    # --------------------------------------------------------
+    # ========================================================
 
     if df_temp.empty:
 
@@ -428,47 +583,69 @@ def obter_ultimo_registro_por_paciente(dataframe):
         return df_temp
 
 
-    # --------------------------------------------------------
-    # TRATAMENTO DO TIMESTAMP
-    # --------------------------------------------------------
+    # ========================================================
+    # TIMESTAMP
+    # ========================================================
 
     if "timestamp" in df_temp.columns:
 
+
         df_temp["timestamp"] = converter_timestamp(
+
             df_temp["timestamp"]
+
         )
 
 
-        # ----------------------------------------------------
-        # ORDENA POR PACIENTE E TEMPO
-        # ----------------------------------------------------
+        # ====================================================
+        # REMOVE TIMESTAMPS INVÁLIDOS
+        # ====================================================
 
-        df_temp = df_temp.sort_values(
+        df_temp = df_temp.dropna(
 
-            by=[
-                "id_paciente",
+            subset=[
                 "timestamp"
-            ],
-
-            ascending=[
-                True,
-                True
             ]
 
         )
 
 
-        # ----------------------------------------------------
-        # MANTÉM ÚLTIMO REGISTRO
-        # ----------------------------------------------------
+        # ====================================================
+        # ORDENAÇÃO
+        # ====================================================
+
+        df_temp = (
+
+            df_temp
+
+            .sort_values(
+
+                [
+                    "id_paciente",
+                    "timestamp"
+                ]
+
+            )
+
+            .copy()
+
+        )
+
+
+        # ====================================================
+        # ÚLTIMO REGISTRO
+        # ====================================================
 
         df_temp = (
 
             df_temp
 
             .groupby(
+
                 "id_paciente",
+
                 as_index=False
+
             )
 
             .tail(1)
@@ -478,17 +655,21 @@ def obter_ultimo_registro_por_paciente(dataframe):
 
     else:
 
-        # ----------------------------------------------------
+
+        # ====================================================
         # CASO NÃO EXISTA TIMESTAMP
-        # ----------------------------------------------------
+        # ====================================================
 
         df_temp = (
 
             df_temp
 
             .groupby(
+
                 "id_paciente",
+
                 as_index=False
+
             )
 
             .tail(1)
@@ -500,32 +681,37 @@ def obter_ultimo_registro_por_paciente(dataframe):
 
 
 # ============================================================
-# FUNÇÃO DE ESTILIZAÇÃO DOS GRÁFICOS
+# FUNÇÃO PARA PADRONIZAR OS GRÁFICOS
 # ============================================================
 
 def estilizar_grafico(
 
     fig,
 
-    altura=360,
+    altura=350,
 
     mostrar_grid_x=True,
 
-    mostrar_grid_y=False
+    mostrar_grid_y=True
 
 ):
 
+
+    # ========================================================
+    # LAYOUT
+    # ========================================================
+
     fig.update_layout(
 
-        paper_bgcolor="white",
+        paper_bgcolor="#FFFFFF",
 
-        plot_bgcolor="white",
+        plot_bgcolor="#FFFFFF",
 
         font=dict(
 
             family="Arial",
 
-            color=CORES["cinza_escuro"]
+            color="#374151"
 
         ),
 
@@ -533,34 +719,38 @@ def estilizar_grafico(
 
         margin=dict(
 
-            t=40,
+            l=20,
 
-            b=30,
+            r=20,
 
-            l=30,
+            t=50,
 
-            r=30
+            b=30
 
         ),
 
-        showlegend=False,
-
         hoverlabel=dict(
 
-            bgcolor="white",
+            bgcolor="#FFFFFF",
 
-            font_color=CORES["cinza_escuro"]
+            font_color="#1F2937"
 
-        )
+        ),
+
+        showlegend=False
 
     )
 
+
+    # ========================================================
+    # EIXO X
+    # ========================================================
 
     fig.update_xaxes(
 
         showgrid=mostrar_grid_x,
 
-        gridcolor="#EEF2F6",
+        gridcolor=CINZA_GRID,
 
         zeroline=False,
 
@@ -569,11 +759,15 @@ def estilizar_grafico(
     )
 
 
+    # ========================================================
+    # EIXO Y
+    # ========================================================
+
     fig.update_yaxes(
 
         showgrid=mostrar_grid_y,
 
-        gridcolor="#EEF2F6",
+        gridcolor=CINZA_GRID,
 
         zeroline=False,
 
@@ -583,47 +777,6 @@ def estilizar_grafico(
 
 
     return fig
-
-
-# ============================================================
-# FUNÇÃO PARA CRIAR CARD KPI
-# ============================================================
-
-def criar_kpi(
-
-    titulo,
-
-    valor,
-
-    subtitulo=""
-
-):
-
-    st.markdown(
-
-        f"""
-
-        <div class="kpi-card">
-
-            <div class="kpi-title">
-                {titulo}
-            </div>
-
-            <div class="kpi-value">
-                {valor}
-            </div>
-
-            <div class="kpi-subtitle">
-                {subtitulo}
-            </div>
-
-        </div>
-
-        """,
-
-        unsafe_allow_html=True
-
-    )
 
 
 # ============================================================
@@ -638,7 +791,7 @@ try:
 except Exception as e:
 
     st.error(
-        "❌ Erro ao carregar os dados."
+        "❌ Não foi possível carregar os dados."
     )
 
     st.exception(e)
@@ -653,18 +806,125 @@ except Exception as e:
 if df.empty:
 
     st.error(
-
-        """
-        ❌ A base de dados está vazia.
-
-        Verifique o arquivo:
-
-        `data/uti_simulada.csv`
-        """
-
+        "❌ A base de dados está vazia."
     )
 
     st.stop()
+
+
+# ============================================================
+# VALIDAÇÃO DO TIMESTAMP
+# ============================================================
+
+if "timestamp" not in df.columns:
+
+    st.error(
+        "❌ A coluna 'timestamp' não foi encontrada."
+    )
+
+    st.stop()
+
+
+# ============================================================
+# PRESERVAÇÃO DO TIMESTAMP ORIGINAL
+# ============================================================
+
+df["timestamp_original"] = (
+
+    df["timestamp"]
+
+    .astype(str)
+
+    .str.strip()
+
+)
+
+
+# ============================================================
+# CONVERSÃO CORRETA DO TIMESTAMP
+#
+# Formato principal da base:
+#
+# DD/MM/AAAA HH:MM
+#
+# Isso impede interpretações incorretas como:
+#
+# MM/DD/AAAA
+# ============================================================
+
+df["timestamp"] = converter_timestamp(
+
+    df["timestamp_original"]
+
+)
+
+
+# ============================================================
+# QUANTIDADE DE TIMESTAMPS INVÁLIDOS
+# ============================================================
+
+quantidade_timestamps_invalidos = (
+
+    df["timestamp"]
+
+    .isna()
+
+    .sum()
+
+)
+
+
+# ============================================================
+# REMOÇÃO DE TIMESTAMPS INVÁLIDOS
+# ============================================================
+
+df = df.dropna(
+
+    subset=[
+        "timestamp"
+    ]
+
+)
+
+
+# ============================================================
+# VALIDAÇÃO
+# ============================================================
+
+if df.empty:
+
+    st.error(
+        """
+        ❌ Não existem timestamps válidos na base.
+
+        O formato esperado é:
+
+        DD/MM/AAAA HH:MM
+
+        Exemplo:
+
+        07/09/2026 20:00
+        """
+    )
+
+    st.stop()
+
+
+# ============================================================
+# ORDENAÇÃO TEMPORAL INICIAL
+# ============================================================
+
+df = (
+
+    df
+
+    .sort_values(
+        "timestamp"
+    )
+
+    .copy()
+
+)
 
 
 # ============================================================
@@ -708,83 +968,58 @@ except Exception as e:
 
 
 # ============================================================
-# GARANTIR TIMESTAMP CORRETO
+# ORDENAÇÃO FINAL
 # ============================================================
 
-if "timestamp" in df.columns:
+df = (
 
-    df["timestamp"] = converter_timestamp(
-        df["timestamp"]
+    df
+
+    .sort_values(
+        "timestamp"
     )
+
+    .copy()
+
+)
 
 
 # ============================================================
 # HEADER
 # ============================================================
 
-st.markdown(
-
-    """
-    <div>
-
-        <div style="
-            font-size: 32px;
-            font-weight: 750;
-            color: #12355B;
-            margin-bottom: 5px;
-        ">
-            📊 Dashboard Geral
-        </div>
-
-        <div style="
-            font-size: 15px;
-            color: #64748B;
-        ">
-            Visão integrada dos indicadores clínicos, riscos,
-            alertas e prioridades da UTI.
-        </div>
-
-    </div>
-    """,
-
-    unsafe_allow_html=True
-
+st.title(
+    "📊 Dashboard Geral"
 )
 
 
-st.markdown("<br>", unsafe_allow_html=True)
+st.caption(
+    """
+    Visão integrada dos indicadores clínicos,
+    riscos, alertas e prioridades dos pacientes
+    da UTI.
+    """
+)
+
+
+st.divider()
 
 
 # ============================================================
 # SIDEBAR
 # ============================================================
 
-st.sidebar.markdown(
-
-    """
-    <div style="
-        font-size: 22px;
-        font-weight: 700;
-        color: #12355B;
-        margin-bottom: 8px;
-    ">
-        🔍 Filtros
-    </div>
-    """,
-
-    unsafe_allow_html=True
-
+st.sidebar.header(
+    "🔍 Filtros"
 )
 
 
 st.sidebar.caption(
-
     """
     Utilize os filtros abaixo para atualizar
     automaticamente todos os indicadores,
     gráficos e tabelas.
     """
-
 )
 
 
@@ -799,7 +1034,7 @@ busca_paciente = st.sidebar.text_input(
 
     "🔎 Buscar paciente",
 
-    placeholder="Ex: PAC-001"
+    placeholder="Ex: 1 ou PAC-001"
 
 )
 
@@ -810,6 +1045,7 @@ busca_paciente = st.sidebar.text_input(
 
 if "classificacao_clinica" in df.columns:
 
+
     opcoes_clinicas = (
 
         ["Todas"]
@@ -818,7 +1054,9 @@ if "classificacao_clinica" in df.columns:
 
         sorted(
 
-            df["classificacao_clinica"]
+            df[
+                "classificacao_clinica"
+            ]
 
             .dropna()
 
@@ -832,9 +1070,12 @@ if "classificacao_clinica" in df.columns:
 
     )
 
+
 else:
 
-    opcoes_clinicas = ["Todas"]
+    opcoes_clinicas = [
+        "Todas"
+    ]
 
 
 filtro_clinico = st.sidebar.selectbox(
@@ -852,6 +1093,7 @@ filtro_clinico = st.sidebar.selectbox(
 
 if "classificacao_lpp" in df.columns:
 
+
     opcoes_lpp = (
 
         ["Todas"]
@@ -860,7 +1102,9 @@ if "classificacao_lpp" in df.columns:
 
         sorted(
 
-            df["classificacao_lpp"]
+            df[
+                "classificacao_lpp"
+            ]
 
             .dropna()
 
@@ -874,9 +1118,12 @@ if "classificacao_lpp" in df.columns:
 
     )
 
+
 else:
 
-    opcoes_lpp = ["Todas"]
+    opcoes_lpp = [
+        "Todas"
+    ]
 
 
 filtro_lpp = st.sidebar.selectbox(
@@ -894,6 +1141,7 @@ filtro_lpp = st.sidebar.selectbox(
 
 if "classificacao_prioridade" in df.columns:
 
+
     opcoes_prioridade = (
 
         ["Todas"]
@@ -902,7 +1150,9 @@ if "classificacao_prioridade" in df.columns:
 
         sorted(
 
-            df["classificacao_prioridade"]
+            df[
+                "classificacao_prioridade"
+            ]
 
             .dropna()
 
@@ -916,9 +1166,12 @@ if "classificacao_prioridade" in df.columns:
 
     )
 
+
 else:
 
-    opcoes_prioridade = ["Todas"]
+    opcoes_prioridade = [
+        "Todas"
+    ]
 
 
 filtro_prioridade = st.sidebar.selectbox(
@@ -936,6 +1189,7 @@ filtro_prioridade = st.sidebar.selectbox(
 
 st.sidebar.divider()
 
+
 st.sidebar.subheader(
     "📌 Filtros Ativos"
 )
@@ -947,37 +1201,48 @@ filtros_ativos = []
 if busca_paciente.strip():
 
     filtros_ativos.append(
+
         f"Paciente: {busca_paciente}"
+
     )
 
 
 if filtro_clinico != "Todas":
 
     filtros_ativos.append(
+
         f"Clínico: {filtro_clinico}"
+
     )
 
 
 if filtro_lpp != "Todas":
 
     filtros_ativos.append(
+
         f"LPP: {filtro_lpp}"
+
     )
 
 
 if filtro_prioridade != "Todas":
 
     filtros_ativos.append(
+
         f"Prioridade: {filtro_prioridade}"
+
     )
 
 
 if filtros_ativos:
 
+
     for filtro in filtros_ativos:
 
         st.sidebar.markdown(
+
             f"🔹 **{filtro}**"
+
         )
 
 
@@ -1003,9 +1268,12 @@ if busca_paciente.strip():
 
     if "id_paciente" in df_filtrado.columns:
 
+
         df_filtrado = df_filtrado[
 
-            df_filtrado["id_paciente"]
+            df_filtrado[
+                "id_paciente"
+            ]
 
             .astype(str)
 
@@ -1030,9 +1298,12 @@ if filtro_clinico != "Todas":
 
     if "classificacao_clinica" in df_filtrado.columns:
 
+
         df_filtrado = df_filtrado[
 
-            df_filtrado["classificacao_clinica"]
+            df_filtrado[
+                "classificacao_clinica"
+            ]
 
             .astype(str)
 
@@ -1049,9 +1320,12 @@ if filtro_lpp != "Todas":
 
     if "classificacao_lpp" in df_filtrado.columns:
 
+
         df_filtrado = df_filtrado[
 
-            df_filtrado["classificacao_lpp"]
+            df_filtrado[
+                "classificacao_lpp"
+            ]
 
             .astype(str)
 
@@ -1068,9 +1342,12 @@ if filtro_prioridade != "Todas":
 
     if "classificacao_prioridade" in df_filtrado.columns:
 
+
         df_filtrado = df_filtrado[
 
-            df_filtrado["classificacao_prioridade"]
+            df_filtrado[
+                "classificacao_prioridade"
+            ]
 
             .astype(str)
 
@@ -1080,19 +1357,18 @@ if filtro_prioridade != "Todas":
 
 
 # ============================================================
-# VERIFICAÇÃO
+# VALIDAÇÃO DOS FILTROS
 # ============================================================
 
 if df_filtrado.empty:
 
     st.warning(
-
         """
         ⚠️ Nenhum registro foi encontrado
         para os filtros selecionados.
         """
-
     )
+
 
     st.info(
         "Altere ou remova algum filtro para visualizar os dados."
@@ -1102,11 +1378,17 @@ if df_filtrado.empty:
 
 
 # ============================================================
-# VISÃO CONSOLIDADA POR PACIENTE
+# VISÃO CONSOLIDADA
+#
+# Último registro de cada paciente
 # ============================================================
 
-df_pacientes = obter_ultimo_registro_por_paciente(
-    df_filtrado
+df_pacientes = (
+
+    obter_ultimo_registro_por_paciente(
+        df_filtrado
+    )
+
 )
 
 
@@ -1114,67 +1396,112 @@ df_pacientes = obter_ultimo_registro_por_paciente(
 # SITUAÇÃO GERAL
 # ============================================================
 
-st.markdown("<br>", unsafe_allow_html=True)
+st.subheader(
+    "📌 Situação Geral"
+)
 
 
-st.markdown(
-
+st.caption(
     """
-    <div class="section-title">
-        📌 Situação Geral
-    </div>
-
-    <div class="section-subtitle">
-        Indicadores baseados na situação mais recente
-        de cada paciente.
-    </div>
-    """,
-
-    unsafe_allow_html=True
-
+    Indicadores baseados na situação mais recente
+    disponível de cada paciente.
+    """
 )
 
 
 # ============================================================
-# CÁLCULOS DOS KPIs
+# PACIENTES ÚNICOS
 # ============================================================
 
 if "id_paciente" in df_pacientes.columns:
 
-    pacientes = df_pacientes["id_paciente"].nunique()
+    pacientes = (
+
+        df_pacientes[
+            "id_paciente"
+        ]
+
+        .nunique()
+
+    )
+
 
 else:
 
-    pacientes = len(df_pacientes)
+    pacientes = len(
+        df_pacientes
+    )
 
 
+# ============================================================
 # SCORE CLÍNICO
+# ============================================================
 
 if "score_clinico" in df_pacientes.columns:
 
-    score_medio = df_pacientes["score_clinico"].mean()
+    score_medio = (
 
-    score_medio_formatado = f"{score_medio:.1f}"
+        df_pacientes[
+            "score_clinico"
+        ]
+
+        .mean()
+
+    )
+
+
+    score_medio_formatado = (
+
+        f"{score_medio:.1f}"
+
+        if pd.notna(score_medio)
+
+        else "N/D"
+
+    )
+
 
 else:
 
     score_medio_formatado = "N/D"
 
 
+# ============================================================
 # SCORE LPP
+# ============================================================
 
 if "score_lpp" in df_pacientes.columns:
 
-    lpp_medio = df_pacientes["score_lpp"].mean()
+    lpp_medio = (
 
-    lpp_medio_formatado = f"{lpp_medio:.1f}"
+        df_pacientes[
+            "score_lpp"
+        ]
+
+        .mean()
+
+    )
+
+
+    lpp_medio_formatado = (
+
+        f"{lpp_medio:.1f}"
+
+        if pd.notna(lpp_medio)
+
+        else "N/D"
+
+    )
+
 
 else:
 
     lpp_medio_formatado = "N/D"
 
 
-# ALERTAS
+# ============================================================
+# PACIENTES COM ALERTAS
+# ============================================================
 
 if (
 
@@ -1186,17 +1513,23 @@ if (
 
 ):
 
+
     pacientes_com_alerta = (
 
         df_pacientes[
-            df_pacientes["quantidade_alertas"] > 0
-        ]
 
-        ["id_paciente"]
+            df_pacientes[
+                "quantidade_alertas"
+            ] > 0
+
+        ][
+            "id_paciente"
+        ]
 
         .nunique()
 
     )
+
 
 else:
 
@@ -1204,7 +1537,7 @@ else:
 
 
 # ============================================================
-# CARDS KPI
+# KPIs
 # ============================================================
 
 col1, col2, col3, col4 = st.columns(4)
@@ -1212,52 +1545,44 @@ col1, col2, col3, col4 = st.columns(4)
 
 with col1:
 
-    criar_kpi(
+    st.metric(
 
         "👥 Pacientes",
 
-        pacientes,
-
-        "Pacientes únicos"
+        pacientes
 
     )
 
 
 with col2:
 
-    criar_kpi(
+    st.metric(
 
         "🩺 Score Clínico Médio",
 
-        score_medio_formatado,
-
-        "Situação clínica atual"
+        score_medio_formatado
 
     )
 
 
 with col3:
 
-    criar_kpi(
+    st.metric(
 
         "🩹 Score LPP Médio",
 
-        lpp_medio_formatado,
-
-        "Risco médio identificado"
+        lpp_medio_formatado
 
     )
 
 
 with col4:
 
-    criar_kpi(
+    st.metric(
 
         "⚠️ Pacientes com Alertas",
 
-        pacientes_com_alerta,
-
-        "Necessitam atenção"
+        pacientes_com_alerta
 
     )
 
@@ -1266,24 +1591,19 @@ with col4:
 # INFORMAÇÕES DA BASE
 # ============================================================
 
-st.markdown("<br><br>", unsafe_allow_html=True)
+st.divider()
 
 
-st.markdown(
+st.subheader(
+    "🕒 Informações da Base"
+)
 
+
+st.caption(
     """
-    <div class="section-title">
-        🕒 Informações da Base
-    </div>
-
-    <div class="section-subtitle">
-        Resumo dos registros temporais disponíveis
-        após a aplicação dos filtros.
-    </div>
-    """,
-
-    unsafe_allow_html=True
-
+    Resumo dos registros temporais disponíveis
+    após a aplicação dos filtros.
+    """
 )
 
 
@@ -1291,18 +1611,28 @@ st.markdown(
 # CÁLCULOS
 # ============================================================
 
-total_registros = len(df_filtrado)
+total_registros = len(
+    df_filtrado
+)
 
-total_pacientes = len(df_pacientes)
+
+total_pacientes = len(
+    df_pacientes
+)
 
 
 if total_pacientes > 0:
 
     media_registros = (
+
         total_registros
+
         /
+
         total_pacientes
+
     )
+
 
 else:
 
@@ -1318,9 +1648,12 @@ periodo_formatado = "N/D"
 
 if "timestamp" in df_filtrado.columns:
 
+
     timestamps_validos = (
 
-        df_filtrado["timestamp"]
+        df_filtrado[
+            "timestamp"
+        ]
 
         .dropna()
 
@@ -1328,6 +1661,7 @@ if "timestamp" in df_filtrado.columns:
 
 
     if not timestamps_validos.empty:
+
 
         inicio = timestamps_validos.min()
 
@@ -1338,15 +1672,15 @@ if "timestamp" in df_filtrado.columns:
 
             f"{inicio.strftime('%d/%m/%Y %H:%M')}"
 
-            "<br>"
+            "\n"
 
-            f"{fim.strftime('%d/%m/%Y %H:%M')}"
+            f"até {fim.strftime('%d/%m/%Y %H:%M')}"
 
         )
 
 
 # ============================================================
-# CARDS DE INFORMAÇÃO
+# KPIs DA BASE
 # ============================================================
 
 col1, col2, col3, col4 = st.columns(4)
@@ -1354,52 +1688,47 @@ col1, col2, col3, col4 = st.columns(4)
 
 with col1:
 
-    criar_kpi(
+    st.metric(
 
         "📊 Registros Filtrados",
 
-        f"{total_registros:,}".replace(",", "."),
-
-        "Registros temporais"
+        f"{total_registros:,}".replace(
+            ",",
+            "."
+        )
 
     )
 
 
 with col2:
 
-    criar_kpi(
+    st.metric(
 
         "👥 Pacientes Únicos",
 
-        total_pacientes,
-
-        "Última situação disponível"
+        total_pacientes
 
     )
 
 
 with col3:
 
-    criar_kpi(
+    st.metric(
 
         "⏱️ Registros / Paciente",
 
-        f"{media_registros:.1f}",
-
-        "Média de acompanhamentos"
+        f"{media_registros:.1f}"
 
     )
 
 
 with col4:
 
-    criar_kpi(
+    st.metric(
 
         "📅 Período",
 
-        periodo_formatado,
-
-        "DD/MM/AAAA HH:MM"
+        periodo_formatado
 
     )
 
@@ -1408,24 +1737,19 @@ with col4:
 # DISTRIBUIÇÃO DE RISCOS
 # ============================================================
 
-st.markdown("<br><br>", unsafe_allow_html=True)
+st.divider()
 
 
-st.markdown(
+st.header(
+    "⚠️ Distribuição de Riscos"
+)
 
+
+st.caption(
     """
-    <div class="section-title">
-        ⚠️ Distribuição de Riscos
-    </div>
-
-    <div class="section-subtitle">
-        Distribuição baseada na situação mais recente
-        de cada paciente.
-    </div>
-    """,
-
-    unsafe_allow_html=True
-
+    Distribuição baseada na situação mais recente
+    disponível de cada paciente.
+    """
 )
 
 
@@ -1438,14 +1762,9 @@ col1, col2 = st.columns(2)
 
 with col1:
 
-    st.markdown(
-        '<div class="chart-card">',
-        unsafe_allow_html=True
-    )
 
-
-    st.markdown(
-        "### 🩺 Classificação Clínica"
+    st.subheader(
+        "🩺 Classificação Clínica"
     )
 
 
@@ -1454,7 +1773,9 @@ with col1:
 
         df_clinica_counts = (
 
-            df_pacientes["classificacao_clinica"]
+            df_pacientes[
+                "classificacao_clinica"
+            ]
 
             .value_counts()
 
@@ -1482,7 +1803,9 @@ with col1:
 
             text="Quantidade",
 
-            color_discrete_sequence=PALETA_AZUL
+            color_discrete_sequence=[
+                AZUL_PRINCIPAL
+            ]
 
         )
 
@@ -1491,13 +1814,19 @@ with col1:
 
             textposition="outside",
 
+            cliponaxis=False,
+
             marker_line_width=0
 
         )
 
 
         fig_clinica = estilizar_grafico(
-            fig_clinica
+
+            fig_clinica,
+
+            altura=350
+
         )
 
 
@@ -1515,14 +1844,8 @@ with col1:
     else:
 
         st.warning(
-            "Classificação clínica não disponível."
+            "⚠️ Classificação clínica não disponível."
         )
-
-
-    st.markdown(
-        "</div>",
-        unsafe_allow_html=True
-    )
 
 
 # ============================================================
@@ -1531,14 +1854,9 @@ with col1:
 
 with col2:
 
-    st.markdown(
-        '<div class="chart-card">',
-        unsafe_allow_html=True
-    )
 
-
-    st.markdown(
-        "### 🩹 Risco de Lesão por Pressão"
+    st.subheader(
+        "🩹 Risco de Lesão por Pressão"
     )
 
 
@@ -1547,7 +1865,9 @@ with col2:
 
         df_lpp_counts = (
 
-            df_pacientes["classificacao_lpp"]
+            df_pacientes[
+                "classificacao_lpp"
+            ]
 
             .value_counts()
 
@@ -1575,7 +1895,9 @@ with col2:
 
             text="Quantidade",
 
-            color_discrete_sequence=PALETA_AZUL
+            color_discrete_sequence=[
+                AZUL_MEDIO
+            ]
 
         )
 
@@ -1584,13 +1906,19 @@ with col2:
 
             textposition="outside",
 
+            cliponaxis=False,
+
             marker_line_width=0
 
         )
 
 
         fig_lpp = estilizar_grafico(
-            fig_lpp
+
+            fig_lpp,
+
+            altura=350
+
         )
 
 
@@ -1608,38 +1936,27 @@ with col2:
     else:
 
         st.warning(
-            "Classificação de LPP não disponível."
+            "⚠️ Classificação de LPP não disponível."
         )
-
-
-    st.markdown(
-        "</div>",
-        unsafe_allow_html=True
-    )
 
 
 # ============================================================
 # DISTRIBUIÇÃO DA PRIORIDADE
 # ============================================================
 
-st.markdown("<br>", unsafe_allow_html=True)
+st.divider()
 
 
-st.markdown(
+st.header(
+    "🎯 Distribuição da Prioridade"
+)
 
+
+st.caption(
     """
-    <div class="section-title">
-        🎯 Distribuição da Prioridade
-    </div>
-
-    <div class="section-subtitle">
-        Classificação dos pacientes de acordo com
-        o índice de prioridade calculado.
-    </div>
-    """,
-
-    unsafe_allow_html=True
-
+    Classificação dos pacientes de acordo com
+    o índice de prioridade calculado.
+    """
 )
 
 
@@ -1648,7 +1965,9 @@ if "classificacao_prioridade" in df_pacientes.columns:
 
     df_prioridade_counts = (
 
-        df_pacientes["classificacao_prioridade"]
+        df_pacientes[
+            "classificacao_prioridade"
+        ]
 
         .value_counts()
 
@@ -1677,7 +1996,7 @@ if "classificacao_prioridade" in df_pacientes.columns:
         text="Quantidade",
 
         color_discrete_sequence=[
-            CORES["azul_principal"]
+            AZUL_PRINCIPAL
         ]
 
     )
@@ -1685,7 +2004,11 @@ if "classificacao_prioridade" in df_pacientes.columns:
 
     fig_prioridade.update_traces(
 
-        textposition="outside"
+        textposition="outside",
+
+        cliponaxis=False,
+
+        marker_line_width=0
 
     )
 
@@ -1713,15 +2036,13 @@ if "classificacao_prioridade" in df_pacientes.columns:
 else:
 
     st.warning(
-        "Classificação de prioridade não disponível."
+        "⚠️ Classificação de prioridade não disponível."
     )
 
 
 # ============================================================
 # MOTIVOS DE INTERNAÇÃO
 # ============================================================
-
-# Procura automaticamente uma coluna correspondente
 
 possiveis_colunas_motivo = [
 
@@ -1745,6 +2066,7 @@ coluna_motivo = None
 
 for coluna in possiveis_colunas_motivo:
 
+
     if coluna in df_pacientes.columns:
 
         coluna_motivo = coluna
@@ -1753,35 +2075,34 @@ for coluna in possiveis_colunas_motivo:
 
 
 # ============================================================
-# GRÁFICO HORIZONTAL
+# EXIBIÇÃO DOS MOTIVOS
 # ============================================================
 
 if coluna_motivo is not None:
 
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.divider()
 
 
-    st.markdown(
+    st.header(
+        "🏥 Motivos de Internação"
+    )
 
+
+    st.caption(
         """
-        <div class="section-title">
-            🏥 Motivos de Internação
-        </div>
-
-        <div class="section-subtitle">
-            Principais motivos registrados para internação.
-        </div>
-        """,
-
-        unsafe_allow_html=True
-
+        Principais motivos registrados para internação,
+        considerando o último registro disponível
+        de cada paciente.
+        """
     )
 
 
     df_motivos = (
 
-        df_pacientes[coluna_motivo]
+        df_pacientes[
+            coluna_motivo
+        ]
 
         .dropna()
 
@@ -1803,13 +2124,30 @@ if coluna_motivo is not None:
     ]
 
 
-    # Ordenação para barras horizontais
+    # ========================================================
+    # ORDENAÇÃO
+    #
+    # Mantém os maiores valores no topo
+    # ========================================================
 
-    df_motivos = df_motivos.sort_values(
-        "Quantidade",
-        ascending=True
+    df_motivos = (
+
+        df_motivos
+
+        .sort_values(
+
+            "Quantidade",
+
+            ascending=True
+
+        )
+
     )
 
+
+    # ========================================================
+    # GRÁFICO
+    # ========================================================
 
     fig_motivos = px.bar(
 
@@ -1824,7 +2162,7 @@ if coluna_motivo is not None:
         text="Quantidade",
 
         color_discrete_sequence=[
-            CORES["azul_principal"]
+            AZUL_PRINCIPAL
         ]
 
     )
@@ -1836,34 +2174,34 @@ if coluna_motivo is not None:
 
         cliponaxis=False,
 
-        marker=dict(
-
-            line=dict(
-                width=0
-            )
-
-        )
+        marker_line_width=0
 
     )
 
 
     fig_motivos.update_layout(
 
-        paper_bgcolor="white",
+        paper_bgcolor="#FFFFFF",
 
-        plot_bgcolor="white",
+        plot_bgcolor="#FFFFFF",
 
-        height=430,
+        height=max(
+
+            350,
+
+            len(df_motivos) * 55
+
+        ),
 
         margin=dict(
 
-            t=30,
-
-            b=30,
-
             l=30,
 
-            r=60
+            r=60,
+
+            t=30,
+
+            b=30
 
         ),
 
@@ -1876,7 +2214,7 @@ if coluna_motivo is not None:
 
         showgrid=True,
 
-        gridcolor="#EEF2F6",
+        gridcolor=CINZA_GRID,
 
         zeroline=False,
 
@@ -1909,24 +2247,19 @@ if coluna_motivo is not None:
 # SITUAÇÃO ATUAL DOS PACIENTES
 # ============================================================
 
-st.markdown("<br>", unsafe_allow_html=True)
+st.divider()
 
 
-st.markdown(
+st.header(
+    "🚨 Situação Atual dos Pacientes"
+)
 
+
+st.caption(
     """
-    <div class="section-title">
-        🚨 Situação Atual dos Pacientes
-    </div>
-
-    <div class="section-subtitle">
-        Último registro disponível de cada paciente,
-        ordenado por prioridade.
-    </div>
-    """,
-
-    unsafe_allow_html=True
-
+    Último registro disponível de cada paciente,
+    ordenado por índice de prioridade.
+    """
 )
 
 
@@ -1969,7 +2302,7 @@ colunas_validas = [
 
 
 # ============================================================
-# ORDENAÇÃO
+# ORDENAÇÃO POR PRIORIDADE
 # ============================================================
 
 if (
@@ -1981,6 +2314,7 @@ if (
     "indice_prioridade" in df_pacientes.columns
 
 ):
+
 
     df_exibicao = (
 
@@ -2001,20 +2335,31 @@ if (
 
 else:
 
-    df_exibicao = df_pacientes.copy()
+    df_exibicao = (
+
+        df_pacientes
+
+        .copy()
+
+    )
 
 
 # ============================================================
-# FORMATAÇÃO DO TIMESTAMP PARA EXIBIÇÃO
+# FORMATAÇÃO DO TIMESTAMP
 # ============================================================
 
 if "timestamp" in df_exibicao.columns:
 
+
     df_exibicao["timestamp"] = (
 
-        df_exibicao["timestamp"]
+        df_exibicao[
+            "timestamp"
+        ]
 
-        .apply(formatar_timestamp)
+        .apply(
+            formatar_timestamp
+        )
 
     )
 
@@ -2042,7 +2387,7 @@ if not df_exibicao.empty:
 else:
 
     st.warning(
-        "Nenhum paciente encontrado."
+        "⚠️ Nenhum paciente encontrado."
     )
 
 
@@ -2050,35 +2395,34 @@ else:
 # HISTÓRICO TEMPORAL
 # ============================================================
 
-st.markdown("<br>", unsafe_allow_html=True)
+st.divider()
 
 
-st.markdown(
+st.header(
+    "🕒 Histórico de Registros"
+)
 
+
+st.caption(
     """
-    <div class="section-title">
-        🕒 Histórico de Registros
-    </div>
-
-    <div class="section-subtitle">
-        Visualização completa dos registros temporais
-        após a aplicação dos filtros.
-    </div>
-    """,
-
-    unsafe_allow_html=True
-
+    Visualização completa dos registros temporais
+    após a aplicação dos filtros.
+    """
 )
 
 
 with st.expander(
 
-    "Visualizar histórico completo filtrado",
+    "📋 Visualizar histórico completo filtrado",
 
     expanded=False
 
 ):
 
+
+    # ========================================================
+    # COLUNAS
+    # ========================================================
 
     colunas_historico = [
 
@@ -2114,14 +2458,25 @@ with st.expander(
     ]
 
 
-    df_historico = df_filtrado.copy()
+    # ========================================================
+    # CÓPIA
+    # ========================================================
+
+    df_historico = (
+
+        df_filtrado
+
+        .copy()
+
+    )
 
 
-    # --------------------------------------------------------
+    # ========================================================
     # ORDENAÇÃO
-    # --------------------------------------------------------
+    # ========================================================
 
     if "timestamp" in df_historico.columns:
+
 
         df_historico = (
 
@@ -2129,7 +2484,7 @@ with st.expander(
 
             .sort_values(
 
-                by="timestamp",
+                "timestamp",
 
                 ascending=False
 
@@ -2138,22 +2493,26 @@ with st.expander(
         )
 
 
-        # ----------------------------------------------------
-        # FORMATAÇÃO VISUAL
-        # ----------------------------------------------------
+        # ====================================================
+        # FORMATAÇÃO
+        # ====================================================
 
         df_historico["timestamp"] = (
 
-            df_historico["timestamp"]
+            df_historico[
+                "timestamp"
+            ]
 
-            .apply(formatar_timestamp)
+            .apply(
+                formatar_timestamp
+            )
 
         )
 
 
-    # --------------------------------------------------------
+    # ========================================================
     # TABELA
-    # --------------------------------------------------------
+    # ========================================================
 
     st.dataframe(
 
@@ -2171,9 +2530,13 @@ with st.expander(
     st.caption(
 
         f"Total de registros históricos: "
+
         f"{len(df_historico):,}"
 
-        .replace(",", ".")
+        .replace(
+            ",",
+            "."
+        )
 
     )
 
@@ -2182,20 +2545,24 @@ with st.expander(
 # DIAGNÓSTICO TÉCNICO
 # ============================================================
 
-st.markdown("<br>", unsafe_allow_html=True)
+st.divider()
 
 
 with st.expander(
 
-    "🔬 Status e Diagnóstico Técnico",
+    "🛠️ Status e Diagnóstico Técnico",
 
     expanded=False
 
 ):
 
 
-    st.markdown(
-        "### Estrutura dos dados"
+    # ========================================================
+    # ESTRUTURA
+    # ========================================================
+
+    st.subheader(
+        "📊 Estrutura dos dados"
     )
 
 
@@ -2205,7 +2572,10 @@ with st.expander(
 
         f"{len(df):,}"
 
-        .replace(",", ".")
+        .replace(
+            ",",
+            "."
+        )
 
     )
 
@@ -2216,7 +2586,10 @@ with st.expander(
 
         f"{len(df_filtrado):,}"
 
-        .replace(",", ".")
+        .replace(
+            ",",
+            "."
+        )
 
     )
 
@@ -2227,7 +2600,10 @@ with st.expander(
 
         f"{len(df_pacientes):,}"
 
-        .replace(",", ".")
+        .replace(
+            ",",
+            "."
+        )
 
     )
 
@@ -2255,8 +2631,110 @@ with st.expander(
         )
 
 
-    st.markdown(
-        "### Colunas disponíveis"
+    # ========================================================
+    # TIMESTAMP
+    # ========================================================
+
+    st.subheader(
+        "🕒 Diagnóstico temporal"
+    )
+
+
+    st.success(
+        "✓ Timestamp processado priorizando o formato DD/MM/AAAA HH:MM"
+    )
+
+
+    if quantidade_timestamps_invalidos == 0:
+
+
+        st.success(
+            "✓ Nenhum timestamp inválido encontrado"
+        )
+
+
+    else:
+
+
+        st.warning(
+
+            f"⚠️ Foram encontrados "
+
+            f"{quantidade_timestamps_invalidos} "
+
+            f"timestamps inválidos."
+
+        )
+
+
+    # ========================================================
+    # PERÍODO
+    # ========================================================
+
+    if "timestamp" in df.columns:
+
+
+        data_min = (
+
+            df[
+                "timestamp"
+            ]
+
+            .min()
+
+        )
+
+
+        data_max = (
+
+            df[
+                "timestamp"
+            ]
+
+            .max()
+
+        )
+
+
+        st.write(
+
+            f"**Período total da base:** "
+
+            f"{formatar_timestamp(data_min)} "
+
+            f"até "
+
+            f"{formatar_timestamp(data_max)}"
+
+        )
+
+
+    # ========================================================
+    # TIPO DO TIMESTAMP
+    # ========================================================
+
+    st.subheader(
+        "🔬 Tipo da coluna timestamp"
+    )
+
+
+    st.code(
+
+        str(
+            df[
+                "timestamp"
+            ].dtype
+        )
+
+    )
+
+
+    # ========================================================
+    # COLUNAS
+    # ========================================================
+
+    st.subheader(
+        "📋 Colunas disponíveis"
     )
 
 
@@ -2265,11 +2743,57 @@ with st.expander(
     )
 
 
+    # ========================================================
+    # AMOSTRA TEMPORAL
+    # ========================================================
+
+    st.subheader(
+        "🧪 Amostra dos registros temporais"
+    )
+
+
+    colunas_diagnostico = [
+
+        "id_paciente",
+
+        "timestamp_original",
+
+        "timestamp"
+
+    ]
+
+
+    colunas_diagnostico = [
+
+        coluna
+
+        for coluna in colunas_diagnostico
+
+        if coluna in df.columns
+
+    ]
+
+
+    st.dataframe(
+
+        df[
+            colunas_diagnostico
+        ]
+
+        .head(15),
+
+        use_container_width=True,
+
+        hide_index=True
+
+    )
+
+
 # ============================================================
 # AVISO ACADÊMICO
 # ============================================================
 
-st.markdown("<br>", unsafe_allow_html=True)
+st.divider()
 
 
 st.info(
@@ -2277,13 +2801,12 @@ st.info(
     """
     ⚠️ **Protótipo acadêmico**
 
-    Este dashboard utiliza dados totalmente simulados
-    para fins de demonstração, modelagem e desenvolvimento
-    de uma arquitetura conceitual de apoio à decisão em UTI.
+    Os dados apresentados nesta página são totalmente simulados
+    e possuem finalidade exclusivamente educacional e conceitual.
 
-    Os scores, alertas e classificações possuem finalidade
-    educacional e não devem ser utilizados para decisões
-    clínicas reais.
+    Os indicadores, scores, alertas e classificações apresentados
+    não constituem um sistema clínico validado e não devem ser
+    utilizados para tomada de decisão clínica real.
     """
 
 )
