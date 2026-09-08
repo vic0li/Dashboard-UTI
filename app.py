@@ -108,7 +108,7 @@ else:
 # HEADER / HERO SECTION (Layout refinado)
 # ============================================================
 
-st.title("🏥 UTI Intelligent Care")
+st.title("Dashboard Gestão da UTI")
 st.caption("🛡️ ICU Sentinel · Monitoramento Preditivo e Inteligência Operacional")
 
 st.markdown(
