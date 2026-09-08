@@ -41,6 +41,204 @@ aplicar_estilo()
 
 
 # ============================================================
+# AJUSTES VISUAIS COMPLEMENTARES
+# Paleta profissional e contraste para modo claro/escuro
+# ============================================================
+
+st.markdown(
+    """
+    <style>
+
+    /* =======================================================
+       PALETA E FUNDO GERAL
+    ======================================================= */
+
+    .stApp {
+        background:
+            linear-gradient(
+                135deg,
+                rgba(15, 23, 42, 0.96),
+                rgba(30, 41, 59, 0.94)
+            );
+    }
+
+    /* Área principal */
+    .main .block-container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+    }
+
+    /* =======================================================
+       TEXTOS
+    ======================================================= */
+
+    h1, h2, h3,
+    .stMarkdown,
+    .stMarkdown p,
+    .stCaption,
+    p, span, label {
+        color: #F8FAFC;
+    }
+
+    /* =======================================================
+       SIDEBAR
+    ======================================================= */
+
+    section[data-testid="stSidebar"] {
+        background: linear-gradient(
+            180deg,
+            #0F172A 0%,
+            #172554 100%
+        );
+        border-right: 1px solid rgba(148, 163, 184, 0.25);
+    }
+
+    section[data-testid="stSidebar"] * {
+        color: #F8FAFC;
+    }
+
+    /* =======================================================
+       SELECTBOX / FILTROS
+       Corrige texto branco sobre fundo claro no modo escuro
+    ======================================================= */
+
+    div[data-baseweb="select"] > div {
+        background-color: #FFFFFF !important;
+        color: #0F172A !important;
+        border: 1px solid #38BDF8 !important;
+        border-radius: 8px !important;
+    }
+
+    div[data-baseweb="select"] span,
+    div[data-baseweb="select"] input,
+    div[data-baseweb="select"] div {
+        color: #0F172A !important;
+    }
+
+    /* Valor selecionado */
+    div[data-baseweb="select"] [data-testid="stMarkdownContainer"],
+    div[data-baseweb="select"] [data-testid="stMarkdownContainer"] p {
+        color: #0F172A !important;
+    }
+
+    /* Menu suspenso */
+    div[role="listbox"] {
+        background-color: #FFFFFF !important;
+        border: 1px solid #38BDF8 !important;
+    }
+
+    div[role="option"] {
+        background-color: #FFFFFF !important;
+        color: #0F172A !important;
+    }
+
+    div[role="option"]:hover {
+        background-color: #E0F2FE !important;
+        color: #0F172A !important;
+    }
+
+    /* =======================================================
+       DATE INPUT
+    ======================================================= */
+
+    div[data-testid="stDateInput"] input {
+        background-color: #FFFFFF !important;
+        color: #0F172A !important;
+        border: 1px solid #38BDF8 !important;
+    }
+
+    div[data-testid="stDateInput"] svg {
+        fill: #0F172A !important;
+    }
+
+    /* =======================================================
+       KPI / METRICS
+    ======================================================= */
+
+    div[data-testid="stMetric"] {
+        background: linear-gradient(
+            135deg,
+            rgba(30, 41, 59, 0.98),
+            rgba(51, 65, 85, 0.98)
+        );
+        border: 1px solid rgba(56, 189, 248, 0.45);
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+    }
+
+    div[data-testid="stMetricLabel"] {
+        color: #BAE6FD !important;
+    }
+
+    div[data-testid="stMetricLabel"] p {
+        color: #BAE6FD !important;
+        font-weight: 600;
+    }
+
+    div[data-testid="stMetricValue"] {
+        color: #FFFFFF !important;
+    }
+
+    div[data-testid="stMetricValue"] div {
+        color: #FFFFFF !important;
+    }
+
+    /* =======================================================
+       BOTÕES
+    ======================================================= */
+
+    .stButton > button {
+        background-color: #0284C7;
+        color: #FFFFFF;
+        border: 1px solid #38BDF8;
+        border-radius: 8px;
+    }
+
+    .stButton > button:hover {
+        background-color: #0369A1;
+        color: #FFFFFF;
+        border-color: #7DD3FC;
+    }
+
+    /* =======================================================
+       EXPANDERS
+    ======================================================= */
+
+    details {
+        background-color: rgba(30, 41, 59, 0.85);
+        border: 1px solid rgba(56, 189, 248, 0.30);
+        border-radius: 10px;
+    }
+
+    details summary {
+        color: #F8FAFC !important;
+        font-weight: 600;
+    }
+
+    /* =======================================================
+       ALERTAS / CAIXAS INFORMATIVAS
+    ======================================================= */
+
+    div[data-testid="stAlert"] {
+        border-radius: 10px;
+    }
+
+    /* =======================================================
+       DIVISORES
+    ======================================================= */
+
+    hr {
+        border-color: rgba(148, 163, 184, 0.25) !important;
+    }
+
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+# ============================================================
 # CARREGAMENTO DOS DADOS
 # ============================================================
 
@@ -336,28 +534,14 @@ if "id_paciente" not in df.columns:
     st.stop()
 
 
-lista_pacientes = (
-
-    df[
-        "id_paciente"
-    ]
-
-    .dropna()
-
-    .astype(str)
-
-    .unique()
-
-    .tolist()
-
+# Garante que os IDs sejam tratados como números
+df["id_paciente"] = pd.to_numeric(
+    df["id_paciente"],
+    errors="coerce"
 )
 
-
-lista_pacientes = sorted(
-
-    lista_pacientes
-
-)
+# Lista fixa e ordenada de pacientes: 1 até 26
+lista_pacientes = list(range(1, 27))
 
 
 if not lista_pacientes:
@@ -388,7 +572,7 @@ df_paciente = (
 
         df[
             "id_paciente"
-        ].astype(str)
+        ]
 
         == paciente_selecionado
 
