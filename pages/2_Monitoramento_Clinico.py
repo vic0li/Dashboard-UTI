@@ -1,11 +1,9 @@
-
 # ============================================================
-# PÁGINA 2
 # MONITORAMENTO CLÍNICO
 # UTI INTELLIGENT CARE
 #
-# Monitoramento temporal e análise clínica
-# dos pacientes simulados da UTI.
+# Página dedicada à análise temporal dos indicadores
+# clínicos simulados.
 # ============================================================
 
 
@@ -25,15 +23,9 @@ from utils.styling import aplicar_estilo
 # ============================================================
 
 st.set_page_config(
-
     page_title="Monitoramento Clínico | UTI Intelligent Care",
-
     page_icon="🩺",
-
-    layout="wide",
-
-    initial_sidebar_state="expanded"
-
+    layout="wide"
 )
 
 
@@ -42,24 +34,6 @@ st.set_page_config(
 # ============================================================
 
 aplicar_estilo()
-
-
-# ============================================================
-# TÍTULO
-# ============================================================
-
-st.title("🩺 Monitoramento Clínico")
-
-
-st.caption(
-    """
-    Acompanhamento dos indicadores clínicos simulados,
-    evolução temporal e situação atual dos pacientes.
-    """
-)
-
-
-st.divider()
 
 
 # ============================================================
@@ -89,13 +63,7 @@ except Exception as e:
 if df.empty:
 
     st.error(
-        """
-        ❌ A base de dados está vazia.
-
-        Verifique o arquivo:
-
-        `data/uti_simulada.csv`
-        """
+        "❌ A base de dados está vazia."
     )
 
     st.stop()
@@ -142,7 +110,7 @@ except Exception as e:
 
 
 # ============================================================
-# PREPARAÇÃO TEMPORAL
+# PROCESSAMENTO DO TIMESTAMP
 # ============================================================
 
 if "timestamp" in df.columns:
@@ -151,17 +119,61 @@ if "timestamp" in df.columns:
 
         df["timestamp"],
 
+        dayfirst=True,
+
         errors="coerce"
 
     )
 
 
 # ============================================================
-# FILTROS INTERATIVOS
+# REMOVER TIMESTAMPS INVÁLIDOS
+# ============================================================
+
+if "timestamp" in df.columns:
+
+    df = df.dropna(
+        subset=["timestamp"]
+    )
+
+
+# ============================================================
+# ORDENAÇÃO TEMPORAL
+# ============================================================
+
+if "timestamp" in df.columns:
+
+    df = df.sort_values(
+        "timestamp"
+    )
+
+
+# ============================================================
+# HEADER
+# ============================================================
+
+st.title(
+    "🩺 Monitoramento Clínico"
+)
+
+
+st.caption(
+    """
+    Acompanhamento temporal dos indicadores clínicos
+    simulados dos pacientes da UTI.
+    """
+)
+
+
+st.divider()
+
+
+# ============================================================
+# FILTROS
 # ============================================================
 
 st.sidebar.header(
-    "🔍 Filtros"
+    "🔍 Monitoramento"
 )
 
 
@@ -171,6 +183,7 @@ st.sidebar.header(
 
 if "id_paciente" in df.columns:
 
+
     lista_pacientes = sorted(
 
         df[
@@ -178,8 +191,6 @@ if "id_paciente" in df.columns:
         ]
 
         .dropna()
-
-        .astype(str)
 
         .unique()
 
@@ -190,159 +201,82 @@ if "id_paciente" in df.columns:
 
     paciente_selecionado = st.sidebar.selectbox(
 
-        "👤 Paciente",
+        "Selecionar paciente",
 
-        options=[
-
-            "Todos"
-
-        ] + lista_pacientes
+        lista_pacientes
 
     )
 
 
 else:
 
-    paciente_selecionado = "Todos"
 
-
-# ============================================================
-# FILTRO DE CLASSIFICAÇÃO CLÍNICA
-# ============================================================
-
-if "classificacao_clinica" in df.columns:
-
-
-    classificacoes = sorted(
-
-        df[
-            "classificacao_clinica"
-        ]
-
-        .dropna()
-
-        .unique()
-
-        .tolist()
-
-    )
-
-
-    classificacao_selecionada = (
-
-        st.sidebar.selectbox(
-
-            "🩺 Situação Clínica",
-
-            options=[
-
-                "Todas"
-
-            ] + classificacoes
-
-        )
-
-    )
-
-
-else:
-
-    classificacao_selecionada = "Todas"
+    paciente_selecionado = None
 
 
 # ============================================================
 # FILTRO DE PERÍODO
 # ============================================================
 
-periodo_disponivel = (
-
-    "timestamp" in df.columns
-
-    and
-
-    df["timestamp"].notna().any()
-
-)
+if "timestamp" in df.columns:
 
 
-if periodo_disponivel:
+    data_min = df[
+        "timestamp"
+    ].min()
 
 
-    data_min = df["timestamp"].min().date()
+    data_max = df[
+        "timestamp"
+    ].max()
 
-    data_max = df["timestamp"].max().date()
 
+    periodo = st.sidebar.date_input(
 
-    periodo_selecionado = (
+        "Período de análise",
 
-        st.sidebar.date_input(
+        value=(
 
-            "📅 Período",
+            data_min.date(),
 
-            value=(
+            data_max.date()
 
-                data_min,
+        ),
 
-                data_max
+        min_value=data_min.date(),
 
-            ),
-
-            min_value=data_min,
-
-            max_value=data_max
-
-        )
+        max_value=data_max.date()
 
     )
 
 
 else:
 
-    periodo_selecionado = None
+
+    periodo = None
 
 
 # ============================================================
-# BOTÃO PARA LIMPAR FILTROS
+# DATAFRAME DO PACIENTE
 # ============================================================
 
-if st.sidebar.button(
-
-    "🔄 Limpar filtros"
-
-):
-
-    st.rerun()
-
-
-# ============================================================
-# APLICAÇÃO DOS FILTROS
-# ============================================================
-
-df_filtrado = df.copy()
+df_monitoramento = df.copy()
 
 
 # ============================================================
 # FILTRO DE PACIENTE
 # ============================================================
 
-if (
-
-    paciente_selecionado != "Todos"
-
-    and
-
-    "id_paciente" in df_filtrado.columns
-
-):
+if paciente_selecionado is not None:
 
 
-    df_filtrado = (
+    df_monitoramento = (
 
-        df_filtrado[
+        df_monitoramento[
 
-            df_filtrado[
+            df_monitoramento[
                 "id_paciente"
-            ].astype(str)
+            ]
 
             == paciente_selecionado
 
@@ -354,31 +288,67 @@ if (
 
 
 # ============================================================
-# FILTRO DE CLASSIFICAÇÃO CLÍNICA
+# FILTRO DE PERÍODO
 # ============================================================
 
 if (
 
-    classificacao_selecionada != "Todas"
+    periodo is not None
 
-    and
-
-    "classificacao_clinica"
-
-    in df_filtrado.columns
+    and len(periodo) == 2
 
 ):
 
 
-    df_filtrado = (
+    data_inicio = pd.to_datetime(
 
-        df_filtrado[
+        periodo[0]
 
-            df_filtrado[
-                "classificacao_clinica"
-            ]
+    )
 
-            == classificacao_selecionada
+
+    data_fim = (
+
+        pd.to_datetime(
+            periodo[1]
+        )
+
+        + pd.Timedelta(
+            days=1
+        )
+
+        - pd.Timedelta(
+            seconds=1
+        )
+
+    )
+
+
+    df_monitoramento = (
+
+        df_monitoramento[
+
+            (
+
+                df_monitoramento[
+                    "timestamp"
+                ]
+
+                >= data_inicio
+
+            )
+
+            &
+
+            (
+
+                df_monitoramento[
+                    "timestamp"
+                ]
+
+                <= data_fim
+
+            )
 
         ]
 
@@ -388,810 +358,148 @@ if (
 
 
 # ============================================================
-# FILTRO DE PERÍODO
+# VALIDAÇÃO DO FILTRO
 # ============================================================
 
-if (
-
-    periodo_selecionado
-
-    and
-
-    "timestamp"
-
-    in df_filtrado.columns
-
-):
-
-
-    if isinstance(
-
-        periodo_selecionado,
-
-        tuple
-
-    ) and len(
-
-        periodo_selecionado
-
-    ) == 2:
-
-
-        data_inicio = pd.to_datetime(
-
-            periodo_selecionado[0]
-
-        )
-
-
-        data_fim = (
-
-            pd.to_datetime(
-
-                periodo_selecionado[1]
-
-            )
-
-            +
-
-            pd.Timedelta(
-
-                days=1
-
-            )
-
-        )
-
-
-        df_filtrado = (
-
-            df_filtrado[
-
-                (
-
-                    df_filtrado[
-                        "timestamp"
-                    ]
-
-                    >= data_inicio
-
-                )
-
-                &
-
-                (
-
-                    df_filtrado[
-                        "timestamp"
-                    ]
-
-                    < data_fim
-
-                )
-
-            ]
-
-            .copy()
-
-        )
-
-
-# ============================================================
-# VERIFICAÇÃO DO FILTRO
-# ============================================================
-
-if df_filtrado.empty:
-
+if df_monitoramento.empty:
 
     st.warning(
-        """
-        ⚠️ Nenhum registro encontrado para os filtros
-        selecionados.
-        """
-    )
 
+        """
+        ⚠️ Nenhum dado foi encontrado para o paciente
+        e período selecionados.
+        """
+
+    )
 
     st.stop()
 
 
 # ============================================================
-# DATAFRAME DE PACIENTES ATUAIS
+# INFORMAÇÕES DO PACIENTE
 # ============================================================
 
-# Após aplicar os filtros temporais,
-# identificamos o último registro disponível
-# de cada paciente.
+st.subheader(
+    "👤 Paciente Monitorado"
+)
 
 
-if (
-
-    "id_paciente"
-
-    in df_filtrado.columns
-
-    and
-
-    "timestamp"
-
-    in df_filtrado.columns
-
-):
+col1, col2, col3 = st.columns(3)
 
 
-    df_pacientes = (
+# ============================================================
+# PACIENTE
+# ============================================================
 
-        df_filtrado
+with col1:
 
-        .sort_values(
+    st.metric(
 
+        "ID do Paciente",
+
+        paciente_selecionado
+
+    )
+
+
+# ============================================================
+# PRIMEIRO REGISTRO
+# ============================================================
+
+with col2:
+
+
+    primeiro_registro = (
+
+        df_monitoramento[
             "timestamp"
+        ]
 
-        )
-
-        .groupby(
-
-            "id_paciente",
-
-            as_index=False
-
-        )
-
-        .tail(1)
-
-        .copy()
+        .min()
 
     )
 
 
-elif "id_paciente" in df_filtrado.columns:
+    st.metric(
 
+        "Início do Período",
 
-    df_pacientes = (
-
-        df_filtrado
-
-        .drop_duplicates(
-
-            subset="id_paciente",
-
-            keep="last"
-
+        primeiro_registro.strftime(
+            "%d/%m/%Y %H:%M"
         )
-
-        .copy()
-
-    )
-
-
-else:
-
-
-    df_pacientes = (
-
-        df_filtrado.copy()
 
     )
 
 
 # ============================================================
-# CONTEXTO DO FILTRO
+# ÚLTIMO REGISTRO
 # ============================================================
 
-st.info(
-    f"""
-    📊 **Contexto atual:** {len(df_pacientes)}
-    pacientes únicos e {len(df_filtrado)}
-    registros temporais estão sendo analisados.
-    """
+with col3:
+
+
+    ultimo_registro = (
+
+        df_monitoramento[
+            "timestamp"
+        ]
+
+        .max()
+
+    )
+
+
+    st.metric(
+
+        "Último Registro",
+
+        ultimo_registro.strftime(
+            "%d/%m/%Y %H:%M"
+        )
+
+    )
+
+
+# ============================================================
+# ÚLTIMO REGISTRO DO PACIENTE
+# ============================================================
+
+registro_atual = (
+
+    df_monitoramento
+
+    .sort_values(
+        "timestamp"
+    )
+
+    .tail(1)
+
+    .iloc[0]
+
 )
 
 
 # ============================================================
-# SITUAÇÃO CLÍNICA ATUAL
+# RESUMO CLÍNICO ATUAL
 # ============================================================
 
-st.header(
+st.divider()
+
+
+st.subheader(
     "📊 Situação Clínica Atual"
 )
 
 
 st.caption(
     """
-    Os indicadores abaixo utilizam apenas o último
-    registro disponível de cada paciente após a
-    aplicação dos filtros.
+    Os valores abaixo correspondem ao último
+    registro disponível no período selecionado.
     """
 )
 
 
-# ============================================================
-# TOTAL DE PACIENTES
-# ============================================================
-
-total_pacientes = (
-
-    df_pacientes[
-        "id_paciente"
-    ].nunique()
-
-    if "id_paciente"
-
-    in df_pacientes.columns
-
-    else len(df_pacientes)
-
-)
-
-
-# ============================================================
-# SPO2 MÉDIA
-# ============================================================
-
-if (
-
-    "saturacao_O2"
-
-    in df_pacientes.columns
-
-):
-
-
-    spo2_media = (
-
-        df_pacientes[
-            "saturacao_O2"
-        ]
-
-        .mean()
-
-    )
-
-
-else:
-
-
-    spo2_media = None
-
-
-# ============================================================
-# FC MÉDIA
-# ============================================================
-
-if (
-
-    "frequencia_cardiaca"
-
-    in df_pacientes.columns
-
-):
-
-
-    fc_media = (
-
-        df_pacientes[
-            "frequencia_cardiaca"
-        ]
-
-        .mean()
-
-    )
-
-
-else:
-
-
-    fc_media = None
-
-
-# ============================================================
-# TEMPERATURA MÉDIA
-# ============================================================
-
-if (
-
-    "temperatura"
-
-    in df_pacientes.columns
-
-):
-
-
-    temperatura_media = (
-
-        df_pacientes[
-            "temperatura"
-        ]
-
-        .mean()
-
-    )
-
-
-else:
-
-
-    temperatura_media = None
-
-
-# ============================================================
-# SCORE CLÍNICO MÉDIO
-# ============================================================
-
-if (
-
-    "score_clinico"
-
-    in df_pacientes.columns
-
-):
-
-
-    score_medio = (
-
-        df_pacientes[
-            "score_clinico"
-        ]
-
-        .mean()
-
-    )
-
-
-else:
-
-
-    score_medio = None
-
-
-# ============================================================
-# CARDS
-# ============================================================
-
-col1, col2, col3, col4, col5 = (
-
-    st.columns(5)
-
-)
-
-
-with col1:
-
-
-    st.metric(
-
-        "👥 Pacientes",
-
-        total_pacientes
-
-    )
-
-
-with col2:
-
-
-    if spo2_media is not None:
-
-
-        st.metric(
-
-            "⭕ SpO₂ Média",
-
-            f"{spo2_media:.1f}%"
-
-        )
-
-
-    else:
-
-
-        st.metric(
-
-            "⭕ SpO₂ Média",
-
-            "N/D"
-
-        )
-
-
-with col3:
-
-
-    if fc_media is not None:
-
-
-        st.metric(
-
-            "💓 FC Média",
-
-            f"{fc_media:.1f} bpm"
-
-        )
-
-
-    else:
-
-
-        st.metric(
-
-            "💓 FC Média",
-
-            "N/D"
-
-        )
-
-
-with col4:
-
-
-    if temperatura_media is not None:
-
-
-        st.metric(
-
-            "🌡️ Temperatura",
-
-            f"{temperatura_media:.1f} °C"
-
-        )
-
-
-    else:
-
-
-        st.metric(
-
-            "🌡️ Temperatura",
-
-            "N/D"
-
-        )
-
-
-with col5:
-
-
-    if score_medio is not None:
-
-
-        st.metric(
-
-            "🧠 Score Clínico",
-
-            f"{score_medio:.1f}"
-
-        )
-
-
-    else:
-
-
-        st.metric(
-
-            "🧠 Score Clínico",
-
-            "N/D"
-
-        )
-
-
-# ============================================================
-# DISTRIBUIÇÃO CLÍNICA
-# ============================================================
-
-st.divider()
-
-st.header(
-    "🩺 Distribuição da Situação Clínica"
-)
-
-
-st.caption(
-    """
-    Cada paciente é contabilizado apenas uma vez,
-    utilizando seu registro mais recente.
-    """
-)
-
-
-if (
-
-    "classificacao_clinica"
-
-    in df_pacientes.columns
-
-):
-
-
-    distribuicao_clinica = (
-
-        df_pacientes
-
-        .groupby(
-
-            "classificacao_clinica"
-
-        )
-
-        .agg(
-
-            Pacientes=(
-
-                "id_paciente",
-
-                "nunique"
-
-            )
-
-        )
-
-        .reset_index()
-
-    )
-
-
-    fig_classificacao = px.bar(
-
-        distribuicao_clinica,
-
-        x="classificacao_clinica",
-
-        y="Pacientes",
-
-        text="Pacientes",
-
-        color="classificacao_clinica",
-
-        labels={
-
-            "classificacao_clinica":
-
-            "Situação Clínica"
-
-        }
-
-    )
-
-
-    fig_classificacao.update_layout(
-
-        showlegend=False,
-
-        height=400,
-
-        xaxis_title="Situação Clínica",
-
-        yaxis_title="Número de Pacientes"
-
-    )
-
-
-    st.plotly_chart(
-
-        fig_classificacao,
-
-        use_container_width=True
-
-    )
-
-
-else:
-
-
-    st.warning(
-        """
-        A coluna de classificação clínica
-        não está disponível.
-        """
-    )
-
-
-# ============================================================
-# EVOLUÇÃO TEMPORAL
-# ============================================================
-
-st.divider()
-
-st.header(
-    "📈 Evolução Temporal dos Indicadores"
-)
-
-
-st.caption(
-    """
-    Esta seção utiliza todos os registros temporais
-    disponíveis após a aplicação dos filtros.
-    """
-)
-
-
-# ============================================================
-# SELEÇÃO DO INDICADOR
-# ============================================================
-
-indicadores_disponiveis = []
-
-
-mapa_indicadores = {
-
-    "Frequência Cardíaca":
-
-    "frequencia_cardiaca",
-
-
-    "SpO₂":
-
-    "saturacao_O2",
-
-
-    "Temperatura":
-
-    "temperatura",
-
-
-    "Pressão Sistólica":
-
-    "pressao_sistolica",
-
-
-    "Pressão Diastólica":
-
-    "pressao_diastolica",
-
-
-    "Score Clínico":
-
-    "score_clinico"
-
-}
-
-
-for nome, coluna in mapa_indicadores.items():
-
-
-    if coluna in df_filtrado.columns:
-
-
-        indicadores_disponiveis.append(
-
-            nome
-
-        )
-
-
-if indicadores_disponiveis:
-
-
-    indicador_selecionado = (
-
-        st.selectbox(
-
-            "Selecione o indicador clínico",
-
-            indicadores_disponiveis
-
-        )
-
-    )
-
-
-    coluna_indicador = (
-
-        mapa_indicadores[
-            indicador_selecionado
-        ]
-
-    )
-
-
-    if (
-
-        "timestamp"
-
-        in df_filtrado.columns
-
-    ):
-
-
-        fig_temporal = px.line(
-
-            df_filtrado,
-
-            x="timestamp",
-
-            y=coluna_indicador,
-
-            color=(
-
-                "id_paciente"
-
-                if
-
-                "id_paciente"
-
-                in df_filtrado.columns
-
-                else None
-
-            ),
-
-            markers=True,
-
-            labels={
-
-                coluna_indicador:
-
-                indicador_selecionado,
-
-                "timestamp":
-
-                "Data / Hora"
-
-            }
-
-        )
-
-
-        fig_temporal.update_layout(
-
-            height=500,
-
-            hovermode="x unified",
-
-            xaxis_title="Data / Hora",
-
-            yaxis_title=indicador_selecionado
-
-        )
-
-
-        st.plotly_chart(
-
-            fig_temporal,
-
-            use_container_width=True
-
-        )
-
-
-    else:
-
-
-        st.warning(
-            "Timestamp não disponível."
-        )
-
-
-else:
-
-
-    st.warning(
-        """
-        Nenhum indicador clínico disponível
-        para análise temporal.
-        """
-    )
-
-
-# ============================================================
-# INDICADORES CLÍNICOS EM PARALELO
-# ============================================================
-
-st.divider()
-
-st.header(
-    "📊 Indicadores Clínicos"
-)
-
-
-st.caption(
-    """
-    Visualização simultânea dos principais
-    indicadores clínicos simulados.
-    """
-)
-
-
-col1, col2 = st.columns(2)
+col1, col2, col3, col4 = st.columns(4)
 
 
 # ============================================================
@@ -1201,77 +509,19 @@ col1, col2 = st.columns(2)
 with col1:
 
 
-    st.subheader(
-        "💓 Frequência Cardíaca"
-    )
+    if "frequencia_cardiaca" in df_monitoramento.columns:
 
 
-    if (
-
-        "frequencia_cardiaca"
-
-        in df_filtrado.columns
-
-        and
-
-        "timestamp"
-
-        in df_filtrado.columns
-
-    ):
+        valor = registro_atual[
+            "frequencia_cardiaca"
+        ]
 
 
-        fig_fc = px.line(
+        st.metric(
 
-            df_filtrado,
+            "❤️ Frequência Cardíaca",
 
-            x="timestamp",
-
-            y="frequencia_cardiaca",
-
-            color=(
-
-                "id_paciente"
-
-                if
-
-                "id_paciente"
-
-                in df_filtrado.columns
-
-                else None
-
-            ),
-
-            labels={
-
-                "frequencia_cardiaca":
-
-                "FC (bpm)",
-
-                "timestamp":
-
-                "Data / Hora"
-
-            }
-
-        )
-
-
-        fig_fc.update_layout(
-
-            height=350,
-
-            hovermode="x unified"
-
-        )
-
-
-        st.plotly_chart(
-
-            fig_fc,
-
-            use_container_width=True
+            f"{valor:.1f} bpm"
 
         )
 
@@ -1279,89 +529,35 @@ with col1:
     else:
 
 
-        st.warning(
-            "Dados de frequência cardíaca indisponíveis."
+        st.metric(
+
+            "❤️ Frequência Cardíaca",
+
+            "N/D"
+
         )
 
 
 # ============================================================
-# SPO2
+# SATURAÇÃO
 # ============================================================
 
 with col2:
 
 
-    st.subheader(
-        "⭕ Saturação de Oxigênio"
-    )
+    if "saturacao_O2" in df_monitoramento.columns:
 
 
-    if (
-
-        "saturacao_O2"
-
-        in df_filtrado.columns
-
-        and
-
-        "timestamp"
-
-        in df_filtrado.columns
-
-    ):
+        valor = registro_atual[
+            "saturacao_O2"
+        ]
 
 
-        fig_spo2 = px.line(
+        st.metric(
 
-            df_filtrado,
+            "⭕ Saturação de O₂",
 
-            x="timestamp",
-
-            y="saturacao_O2",
-
-            color=(
-
-                "id_paciente"
-
-                if
-
-                "id_paciente"
-
-                in df_filtrado.columns
-
-                else None
-
-            ),
-
-            labels={
-
-                "saturacao_O2":
-
-                "SpO₂ (%)",
-
-                "timestamp":
-
-                "Data / Hora"
-
-            }
-
-        )
-
-
-        fig_spo2.update_layout(
-
-            height=350,
-
-            hovermode="x unified"
-
-        )
-
-
-        st.plotly_chart(
-
-            fig_spo2,
-
-            use_container_width=True
+            f"{valor:.1f}%"
 
         )
 
@@ -1369,9 +565,276 @@ with col2:
     else:
 
 
-        st.warning(
-            "Dados de SpO₂ indisponíveis."
+        st.metric(
+
+            "⭕ Saturação de O₂",
+
+            "N/D"
+
         )
+
+
+# ============================================================
+# TEMPERATURA
+# ============================================================
+
+with col3:
+
+
+    if "temperatura" in df_monitoramento.columns:
+
+
+        valor = registro_atual[
+            "temperatura"
+        ]
+
+
+        st.metric(
+
+            "🌡️ Temperatura",
+
+            f"{valor:.1f} °C"
+
+        )
+
+
+    else:
+
+
+        st.metric(
+
+            "🌡️ Temperatura",
+
+            "N/D"
+
+        )
+
+
+# ============================================================
+# LACTATO
+# ============================================================
+
+with col4:
+
+
+    if "lactato" in df_monitoramento.columns:
+
+
+        valor = registro_atual[
+            "lactato"
+        ]
+
+
+        st.metric(
+
+            "🧪 Lactato",
+
+            f"{valor:.2f}"
+
+        )
+
+
+    else:
+
+
+        st.metric(
+
+            "🧪 Lactato",
+
+            "N/D"
+
+        )
+
+
+# ============================================================
+# SINAIS VITAIS
+# ============================================================
+
+st.divider()
+
+
+st.header(
+    "❤️ Sinais Vitais"
+)
+
+
+st.caption(
+    """
+    Evolução temporal individual dos principais
+    sinais vitais do paciente.
+    """
+)
+
+
+# ============================================================
+# FUNÇÃO AUXILIAR PARA GRÁFICOS
+# ============================================================
+
+def grafico_temporal(
+
+    dataframe,
+
+    coluna,
+
+    titulo,
+
+    eixo_y,
+
+    unidade
+
+):
+
+
+    if coluna not in dataframe.columns:
+
+        st.warning(
+
+            f"{titulo}: dados não disponíveis."
+
+        )
+
+        return
+
+
+    dados_grafico = (
+
+        dataframe[
+
+            [
+
+                "timestamp",
+
+                coluna
+
+            ]
+
+        ]
+
+        .dropna()
+
+        .copy()
+
+    )
+
+
+    if dados_grafico.empty:
+
+        st.warning(
+
+            f"{titulo}: não há dados disponíveis."
+
+        )
+
+        return
+
+
+   fig = px.line(
+
+    dados_grafico,
+
+    x="timestamp",
+
+    y=coluna,
+
+    title=titulo
+
+)
+
+
+    fig.update_traces(
+
+        line=dict(
+
+            width=3
+
+        )
+
+    )
+
+
+    fig.update_layout(
+
+        xaxis_title="Data / Hora",
+
+        yaxis_title=eixo_y,
+
+        height=350,
+
+        margin=dict(
+
+            l=20,
+
+            r=20,
+
+            t=50,
+
+            b=20
+
+        ),
+
+        hovermode="x unified"
+        
+        xaxis=dict(
+            tickformat="%d/%m\n%H:%M"
+        )
+
+    )
+
+
+    st.plotly_chart(
+
+        fig,
+
+        use_container_width=True
+
+    )
+
+
+# ============================================================
+# FREQUÊNCIA CARDÍACA
+# ============================================================
+
+col1, col2 = st.columns(2)
+
+
+with col1:
+
+
+    grafico_temporal(
+
+        df_monitoramento,
+
+        "frequencia_cardiaca",
+
+        "❤️ Frequência Cardíaca",
+
+        "FC (bpm)",
+
+        "bpm"
+
+    )
+
+
+# ============================================================
+# SATURAÇÃO
+# ============================================================
+
+with col2:
+
+
+    grafico_temporal(
+
+        df_monitoramento,
+
+        "saturacao_O2",
+
+        "⭕ Saturação de Oxigênio",
+
+        "SpO₂ (%)",
+
+        "%"
+
+    )
 
 
 # ============================================================
@@ -1380,618 +843,304 @@ with col2:
 
 st.divider()
 
-st.header(
+
+st.subheader(
     "🩸 Pressão Arterial"
 )
 
 
-if (
+# ============================================================
+# PRESSÃO SISTÓLICA
+# ============================================================
 
-    "pressao_sistolica"
+col1, col2 = st.columns(2)
 
-    in df_filtrado.columns
 
-    and
+with col1:
 
-    "pressao_diastolica"
 
-    in df_filtrado.columns
+    grafico_temporal(
 
-    and
+        df_monitoramento,
 
-    "timestamp"
+        "pressao_sistolica",
 
-    in df_filtrado.columns
+        "Pressão Sistólica",
 
-):
+        "Pressão (mmHg)",
 
+        "mmHg"
 
-    df_pressao = (
-
-        df_filtrado[
-
-            [
-
-                "timestamp",
-
-                "id_paciente",
-
-                "pressao_sistolica",
-
-                "pressao_diastolica"
-
-            ]
-
-        ]
-
-        .copy()
-
-    )
-
-
-    df_pressao_long = (
-
-        df_pressao
-
-        .melt(
-
-            id_vars=[
-
-                "timestamp",
-
-                "id_paciente"
-
-            ],
-
-            value_vars=[
-
-                "pressao_sistolica",
-
-                "pressao_diastolica"
-
-            ],
-
-            var_name="Tipo",
-
-            value_name="Pressão"
-
-        )
-
-    )
-
-
-    fig_pressao = px.line(
-
-        df_pressao_long,
-
-        x="timestamp",
-
-        y="Pressão",
-
-        color="Tipo",
-
-        line_dash=(
-
-            "id_paciente"
-
-            if
-
-            paciente_selecionado == "Todos"
-
-            else None
-
-        ),
-
-        labels={
-
-            "timestamp":
-
-            "Data / Hora",
-
-            "Pressão":
-
-            "Pressão (mmHg)"
-
-        }
-
-    )
-
-
-    fig_pressao.update_layout(
-
-        height=450,
-
-        hovermode="x unified"
-
-    )
-
-
-    st.plotly_chart(
-
-        fig_pressao,
-
-        use_container_width=True
-
-    )
-
-
-else:
-
-
-    st.warning(
-        """
-        Dados de pressão arterial
-        não estão disponíveis.
-        """
     )
 
 
 # ============================================================
-# ANÁLISE INDIVIDUAL DO PACIENTE
+# PRESSÃO DIASTÓLICA
+# ============================================================
+
+with col2:
+
+
+    grafico_temporal(
+
+        df_monitoramento,
+
+        "pressao_diastolica",
+
+        "Pressão Diastólica",
+
+        "Pressão (mmHg)",
+
+        "mmHg"
+
+    )
+
+
+# ============================================================
+# TEMPERATURA
 # ============================================================
 
 st.divider()
 
+
+st.subheader(
+    "🌡️ Temperatura"
+)
+
+
+grafico_temporal(
+
+    df_monitoramento,
+
+    "temperatura",
+
+    "Evolução da Temperatura Corporal",
+
+    "Temperatura (°C)",
+
+    "°C"
+
+)
+
+
+# ============================================================
+# EXAMES LABORATORIAIS
+# ============================================================
+
+st.divider()
+
+
 st.header(
-    "👤 Análise Individual do Paciente"
+    "🧪 Indicadores Laboratoriais"
 )
 
 
 st.caption(
     """
-    Visualização detalhada da evolução temporal
-    de um paciente específico.
+    Evolução temporal dos exames laboratoriais
+    disponíveis na base simulada.
     """
 )
 
 
-if "id_paciente" in df.columns:
+col1, col2, col3 = st.columns(3)
 
 
-    pacientes_analise = sorted(
+# ============================================================
+# LACTATO
+# ============================================================
 
-        df[
-            "id_paciente"
-        ]
-
-        .dropna()
-
-        .astype(str)
-
-        .unique()
-
-        .tolist()
-
-    )
+with col1:
 
 
-    paciente_analise = (
+    grafico_temporal(
 
-        st.selectbox(
+        df_monitoramento,
 
-            "Selecione um paciente para análise detalhada",
+        "lactato",
 
-            pacientes_analise
+        "Lactato",
 
-        )
+        "Lactato",
+
+        ""
 
     )
 
 
-    df_paciente_individual = (
+# ============================================================
+# LEUCÓCITOS
+# ============================================================
 
-        df[
-
-            df[
-                "id_paciente"
-            ].astype(str)
-
-            == paciente_analise
-
-        ]
-
-        .copy()
-
-    )
+with col2:
 
 
-    if (
+    grafico_temporal(
 
-        "timestamp"
+        df_monitoramento,
 
-        in df_paciente_individual.columns
+        "leucocitos",
 
-    ):
+        "Leucócitos",
 
+        "Leucócitos",
 
-        df_paciente_individual = (
-
-            df_paciente_individual
-
-            .sort_values(
-
-                "timestamp"
-
-            )
-
-        )
-
-
-    # ========================================================
-    # ÚLTIMO REGISTRO
-    # ========================================================
-
-    ultimo_registro = (
-
-        df_paciente_individual
-
-        .tail(1)
+        ""
 
     )
 
 
-    if not ultimo_registro.empty:
+# ============================================================
+# CREATININA
+# ============================================================
 
+with col3:
 
-        st.subheader(
-            "📌 Situação Atual"
-        )
 
+    grafico_temporal(
 
-        c1, c2, c3, c4 = (
+        df_monitoramento,
 
-            st.columns(4)
+        "creatinina",
 
-        )
+        "Creatinina",
 
+        "Creatinina",
 
-        with c1:
+        ""
 
+    )
 
-            if (
 
-                "frequencia_cardiaca"
+# ============================================================
+# TENDÊNCIA CLÍNICA
+# ============================================================
 
-                in ultimo_registro.columns
+st.divider()
 
-            ):
 
+st.header(
+    "📈 Tendência Clínica"
+)
 
-                valor_fc = (
 
-                    ultimo_registro[
-                        "frequencia_cardiaca"
-                    ].iloc[0]
+st.caption(
+    """
+    Evolução do score clínico calculado pelo
+    motor analítico.
+    """
+)
 
-                )
 
+grafico_temporal(
 
-                st.metric(
+    df_monitoramento,
 
-                    "💓 FC",
+    "score_clinico",
 
-                    f"{valor_fc:.1f} bpm"
+    "Evolução do Score Clínico",
 
-                )
+    "Score Clínico",
 
+    ""
 
-        with c2:
+)
 
 
-            if (
+# ============================================================
+# CLASSIFICAÇÃO CLÍNICA ATUAL
+# ============================================================
 
-                "saturacao_O2"
+if "classificacao_clinica" in registro_atual.index:
 
-                in ultimo_registro.columns
-
-            ):
-
-
-                valor_spo2 = (
-
-                    ultimo_registro[
-                        "saturacao_O2"
-                    ].iloc[0]
-
-                )
-
-
-                st.metric(
-
-                    "⭕ SpO₂",
-
-                    f"{valor_spo2:.1f}%"
-
-                )
-
-
-        with c3:
-
-
-            if (
-
-                "temperatura"
-
-                in ultimo_registro.columns
-
-            ):
-
-
-                valor_temp = (
-
-                    ultimo_registro[
-                        "temperatura"
-                    ].iloc[0]
-
-                )
-
-
-                st.metric(
-
-                    "🌡️ Temperatura",
-
-                    f"{valor_temp:.1f} °C"
-
-                )
-
-
-        with c4:
-
-
-            if (
-
-                "score_clinico"
-
-                in ultimo_registro.columns
-
-            ):
-
-
-                valor_score = (
-
-                    ultimo_registro[
-                        "score_clinico"
-                    ].iloc[0]
-
-                )
-
-
-                st.metric(
-
-                    "🧠 Score Clínico",
-
-                    f"{valor_score:.1f}"
-
-                )
-
-
-    # ========================================================
-    # EVOLUÇÃO DO PACIENTE
-    # ========================================================
 
     st.subheader(
-        "📈 Evolução do Paciente"
+        "🚦 Classificação Atual"
     )
 
 
-    variaveis_individuais = [
+    classificacao = registro_atual[
+        "classificacao_clinica"
+    ]
+
+
+    st.info(
+
+        f"""
+        Situação clínica atual:
+
+        **{classificacao}**
+        """
+
+    )
+
+
+# ============================================================
+# DADOS UTILIZADOS
+# ============================================================
+
+st.divider()
+
+
+with st.expander(
+
+    "📋 Visualizar dados utilizados no monitoramento",
+
+    expanded=False
+
+):
+
+
+    colunas_monitoramento = [
+
+
+        "id_paciente",
+
+        "timestamp",
+
 
         "frequencia_cardiaca",
+
+        "pressao_sistolica",
+
+        "pressao_diastolica",
 
         "saturacao_O2",
 
         "temperatura",
 
-        "score_clinico"
+
+        "lactato",
+
+        "leucocitos",
+
+        "creatinina",
+
+
+        "score_clinico",
+
+        "classificacao_clinica"
 
     ]
 
 
-    variaveis_existentes = [
+    colunas_disponiveis = [
+
 
         coluna
 
-        for coluna
+        for coluna in colunas_monitoramento
 
-        in variaveis_individuais
-
-        if coluna
-
-        in df_paciente_individual.columns
+        if coluna in df_monitoramento.columns
 
     ]
-
-
-    if (
-
-        variaveis_existentes
-
-        and
-
-        "timestamp"
-
-        in df_paciente_individual.columns
-
-    ):
-
-
-        df_individual_long = (
-
-            df_paciente_individual
-
-            .melt(
-
-                id_vars=[
-
-                    "timestamp"
-
-                ],
-
-                value_vars=(
-
-                    variaveis_existentes
-
-                ),
-
-                var_name="Indicador",
-
-                value_name="Valor"
-
-            )
-
-        )
-
-
-        fig_individual = px.line(
-
-            df_individual_long,
-
-            x="timestamp",
-
-            y="Valor",
-
-            color="Indicador",
-
-            markers=True
-
-        )
-
-
-        fig_individual.update_layout(
-
-            height=500,
-
-            hovermode="x unified",
-
-            xaxis_title="Data / Hora",
-
-            yaxis_title="Valor"
-
-        )
-
-
-        st.plotly_chart(
-
-            fig_individual,
-
-            use_container_width=True
-
-        )
-
-
-    else:
-
-
-        st.warning(
-            """
-            Não existem dados suficientes para gerar
-            a evolução individual.
-            """
-        )
-
-
-# ============================================================
-# TABELA CLÍNICA ATUAL
-# ============================================================
-
-st.divider()
-
-st.header(
-    "📋 Situação Atual dos Pacientes"
-)
-
-
-st.caption(
-    """
-    Cada paciente aparece apenas uma vez,
-    utilizando seu último registro disponível.
-    """
-)
-
-
-colunas_clinicas = [
-
-    "id_paciente",
-
-    "timestamp",
-
-    "frequencia_cardiaca",
-
-    "pressao_sistolica",
-
-    "pressao_diastolica",
-
-    "saturacao_O2",
-
-    "temperatura",
-
-    "lactato",
-
-    "score_clinico",
-
-    "classificacao_clinica"
-
-]
-
-
-colunas_existentes = [
-
-    coluna
-
-    for coluna
-
-    in colunas_clinicas
-
-    if coluna
-
-    in df_pacientes.columns
-
-]
-
-
-if colunas_existentes:
-
-
-    df_tabela = (
-
-        df_pacientes[
-
-            colunas_existentes
-
-        ]
-
-        .copy()
-
-    )
-
-
-    if (
-
-        "score_clinico"
-
-        in df_tabela.columns
-
-    ):
-
-
-        df_tabela = (
-
-            df_tabela
-
-            .sort_values(
-
-                "score_clinico",
-
-                ascending=False
-
-            )
-
-        )
 
 
     st.dataframe(
 
-        df_tabela,
+        df_monitoramento[
+            colunas_disponiveis
+        ],
 
         use_container_width=True,
 
@@ -2000,19 +1149,8 @@ if colunas_existentes:
     )
 
 
-else:
-
-
-    st.warning(
-        """
-        Nenhuma variável clínica disponível
-        para visualização.
-        """
-    )
-
-
 # ============================================================
-# RESUMO TÉCNICO
+# DIAGNÓSTICO TEMPORAL
 # ============================================================
 
 st.divider()
@@ -2020,7 +1158,7 @@ st.divider()
 
 with st.expander(
 
-    "🔬 Informações sobre a análise",
+    "🛠️ Diagnóstico temporal",
 
     expanded=False
 
@@ -2028,36 +1166,25 @@ with st.expander(
 
 
     st.write(
+
         f"""
-        **Registros temporais analisados:** {len(df_filtrado)}
+        **Paciente selecionado:** {paciente_selecionado}
 
-        **Pacientes únicos analisados:** {len(df_pacientes)}
+        **Total de registros utilizados:**
+        {len(df_monitoramento)}
+
+        **Primeiro timestamp:**
+        {df_monitoramento['timestamp'].min()}
+
+        **Último timestamp:**
+        {df_monitoramento['timestamp'].max()}
+
+        **Período total disponível:**
+        {data_min.strftime('%d/%m/%Y')}
+        até
+        {data_max.strftime('%d/%m/%Y')}
         """
-    )
 
-
-    st.write(
-        """
-        ### Lógica da página
-
-        **Visão atual**
-
-        Utiliza apenas o último registro disponível
-        de cada paciente.
-
-        **Evolução temporal**
-
-        Utiliza todos os registros disponíveis
-        após a aplicação dos filtros.
-
-        Isso permite separar corretamente:
-
-        • Estado atual do paciente
-
-        • Histórico clínico
-
-        • Evolução temporal dos indicadores
-        """
     )
 
 
@@ -2069,15 +1196,16 @@ st.divider()
 
 
 st.info(
+
     """
     ⚠️ **Protótipo acadêmico**
 
-    Esta página utiliza dados totalmente simulados
-    para demonstrar conceitos de monitoramento clínico,
-    análise temporal e suporte à decisão.
+    Os dados apresentados nesta página são totalmente
+    simulados e possuem finalidade exclusivamente
+    educacional e conceitual.
 
-    Os indicadores e scores apresentados possuem
-    finalidade exclusivamente educacional e conceitual.
+    Este sistema não deve ser utilizado para tomada
+    de decisão clínica real.
     """
-)
 
+)
