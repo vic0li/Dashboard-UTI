@@ -126,26 +126,44 @@ if "timestamp" in df.columns:
     )
 
 
+else:
+
+    st.error(
+        "❌ A coluna 'timestamp' não foi encontrada."
+    )
+
+    st.stop()
+
+
 # ============================================================
 # REMOVER TIMESTAMPS INVÁLIDOS
 # ============================================================
 
-if "timestamp" in df.columns:
+df = df.dropna(
+    subset=["timestamp"]
+)
 
-    df = df.dropna(
-        subset=["timestamp"]
+
+# ============================================================
+# VALIDAÇÃO APÓS PROCESSAMENTO
+# ============================================================
+
+if df.empty:
+
+    st.error(
+        "❌ Não existem timestamps válidos na base."
     )
+
+    st.stop()
 
 
 # ============================================================
 # ORDENAÇÃO TEMPORAL
 # ============================================================
 
-if "timestamp" in df.columns:
-
-    df = df.sort_values(
-        "timestamp"
-    )
+df = df.sort_values(
+    "timestamp"
+)
 
 
 # ============================================================
@@ -199,6 +217,15 @@ if "id_paciente" in df.columns:
     )
 
 
+    if not lista_pacientes:
+
+        st.error(
+            "❌ Nenhum paciente encontrado na base."
+        )
+
+        st.stop()
+
+
     paciente_selecionado = st.sidebar.selectbox(
 
         "Selecionar paciente",
@@ -210,54 +237,48 @@ if "id_paciente" in df.columns:
 
 else:
 
+    st.error(
+        "❌ A coluna 'id_paciente' não foi encontrada."
+    )
 
-    paciente_selecionado = None
+    st.stop()
 
 
 # ============================================================
 # FILTRO DE PERÍODO
 # ============================================================
 
-if "timestamp" in df.columns:
+data_min = df[
+    "timestamp"
+].min()
 
 
-    data_min = df[
-        "timestamp"
-    ].min()
+data_max = df[
+    "timestamp"
+].max()
 
 
-    data_max = df[
-        "timestamp"
-    ].max()
+periodo = st.sidebar.date_input(
 
+    "Período de análise",
 
-    periodo = st.sidebar.date_input(
+    value=(
 
-        "Período de análise",
+        data_min.date(),
 
-        value=(
+        data_max.date()
 
-            data_min.date(),
+    ),
 
-            data_max.date()
+    min_value=data_min.date(),
 
-        ),
+    max_value=data_max.date()
 
-        min_value=data_min.date(),
-
-        max_value=data_max.date()
-
-    )
-
-
-else:
-
-
-    periodo = None
+)
 
 
 # ============================================================
-# DATAFRAME DO PACIENTE
+# DATAFRAME DO MONITORAMENTO
 # ============================================================
 
 df_monitoramento = df.copy()
@@ -267,37 +288,28 @@ df_monitoramento = df.copy()
 # FILTRO DE PACIENTE
 # ============================================================
 
-if paciente_selecionado is not None:
+df_monitoramento = (
 
-
-    df_monitoramento = (
+    df_monitoramento[
 
         df_monitoramento[
-
-            df_monitoramento[
-                "id_paciente"
-            ]
-
-            == paciente_selecionado
-
+            "id_paciente"
         ]
 
-        .copy()
+        == paciente_selecionado
 
-    )
+    ]
+
+    .copy()
+
+)
 
 
 # ============================================================
 # FILTRO DE PERÍODO
 # ============================================================
 
-if (
-
-    periodo is not None
-
-    and len(periodo) == 2
-
-):
+if periodo is not None and len(periodo) == 2:
 
 
     data_inicio = pd.to_datetime(
@@ -517,17 +529,29 @@ with col1:
         ]
 
 
-        st.metric(
+        if pd.notna(valor):
 
-            "❤️ Frequência Cardíaca",
+            st.metric(
 
-            f"{valor:.1f} bpm"
+                "❤️ Frequência Cardíaca",
 
-        )
+                f"{valor:.1f} bpm"
+
+            )
+
+
+        else:
+
+            st.metric(
+
+                "❤️ Frequência Cardíaca",
+
+                "N/D"
+
+            )
 
 
     else:
-
 
         st.metric(
 
@@ -553,17 +577,29 @@ with col2:
         ]
 
 
-        st.metric(
+        if pd.notna(valor):
 
-            "⭕ Saturação de O₂",
+            st.metric(
 
-            f"{valor:.1f}%"
+                "⭕ Saturação de O₂",
 
-        )
+                f"{valor:.1f}%"
+
+            )
+
+
+        else:
+
+            st.metric(
+
+                "⭕ Saturação de O₂",
+
+                "N/D"
+
+            )
 
 
     else:
-
 
         st.metric(
 
@@ -589,17 +625,29 @@ with col3:
         ]
 
 
-        st.metric(
+        if pd.notna(valor):
 
-            "🌡️ Temperatura",
+            st.metric(
 
-            f"{valor:.1f} °C"
+                "🌡️ Temperatura",
 
-        )
+                f"{valor:.1f} °C"
+
+            )
+
+
+        else:
+
+            st.metric(
+
+                "🌡️ Temperatura",
+
+                "N/D"
+
+            )
 
 
     else:
-
 
         st.metric(
 
@@ -625,17 +673,29 @@ with col4:
         ]
 
 
-        st.metric(
+        if pd.notna(valor):
 
-            "🧪 Lactato",
+            st.metric(
 
-            f"{valor:.2f}"
+                "🧪 Lactato",
 
-        )
+                f"{valor:.2f}"
+
+            )
+
+
+        else:
+
+            st.metric(
+
+                "🧪 Lactato",
+
+                "N/D"
+
+            )
 
 
     else:
-
 
         st.metric(
 
@@ -644,6 +704,169 @@ with col4:
             "N/D"
 
         )
+
+
+# ============================================================
+# FUNÇÃO AUXILIAR PARA GRÁFICOS
+# ============================================================
+
+def grafico_temporal(
+
+    dataframe,
+
+    coluna,
+
+    titulo,
+
+    eixo_y
+
+):
+
+
+    # ========================================================
+    # VALIDAÇÃO DA COLUNA
+    # ========================================================
+
+    if coluna not in dataframe.columns:
+
+        st.warning(
+
+            f"{titulo}: dados não disponíveis."
+
+        )
+
+        return
+
+
+    # ========================================================
+    # PREPARAÇÃO DOS DADOS
+    # ========================================================
+
+    dados_grafico = (
+
+        dataframe[
+
+            [
+
+                "timestamp",
+
+                coluna
+
+            ]
+
+        ]
+
+        .dropna()
+
+        .copy()
+
+    )
+
+
+    # ========================================================
+    # VALIDAÇÃO DOS DADOS
+    # ========================================================
+
+    if dados_grafico.empty:
+
+        st.warning(
+
+            f"{titulo}: não há dados disponíveis."
+
+        )
+
+        return
+
+
+    # ========================================================
+    # ORDENAÇÃO TEMPORAL
+    # ========================================================
+
+    dados_grafico = dados_grafico.sort_values(
+
+        "timestamp"
+
+    )
+
+
+    # ========================================================
+    # CRIAÇÃO DO GRÁFICO
+    # ========================================================
+
+    fig = px.line(
+
+        dados_grafico,
+
+        x="timestamp",
+
+        y=coluna,
+
+        title=titulo
+
+    )
+
+
+    # ========================================================
+    # ESTILO DA LINHA
+    # ========================================================
+
+    fig.update_traces(
+
+        line=dict(
+
+            width=3
+
+        )
+
+    )
+
+
+    # ========================================================
+    # LAYOUT
+    # ========================================================
+
+    fig.update_layout(
+
+        xaxis_title="Data / Hora",
+
+        yaxis_title=eixo_y,
+
+        height=350,
+
+        margin=dict(
+
+            l=20,
+
+            r=20,
+
+            t=50,
+
+            b=20
+
+        ),
+
+        hovermode="x unified",
+
+        xaxis=dict(
+
+            tickformat="%d/%m\n%H:%M"
+
+        )
+
+    )
+
+
+    # ========================================================
+    # EXIBIÇÃO
+    # ========================================================
+
+    st.plotly_chart(
+
+        fig,
+
+        use_container_width=True
+
+    )
 
 
 # ============================================================
@@ -667,131 +890,7 @@ st.caption(
 
 
 # ============================================================
-# FUNÇÃO AUXILIAR PARA GRÁFICOS
-# ============================================================
-
-def grafico_temporal(
-
-    dataframe,
-
-    coluna,
-
-    titulo,
-
-    eixo_y,
-
-    unidade
-
-):
-
-
-    if coluna not in dataframe.columns:
-
-        st.warning(
-
-            f"{titulo}: dados não disponíveis."
-
-        )
-
-        return
-
-
-    dados_grafico = (
-
-        dataframe[
-
-            [
-
-                "timestamp",
-
-                coluna
-
-            ]
-
-        ]
-
-        .dropna()
-
-        .copy()
-
-    )
-
-
-    if dados_grafico.empty:
-
-        st.warning(
-
-            f"{titulo}: não há dados disponíveis."
-
-        )
-
-        return
-
-
-   fig = px.line(
-
-    dados_grafico,
-
-    x="timestamp",
-
-    y=coluna,
-
-    title=titulo
-
-)
-
-
-    fig.update_traces(
-
-        line=dict(
-
-            width=3
-
-        )
-
-    )
-
-
-    fig.update_layout(
-
-        xaxis_title="Data / Hora",
-
-        yaxis_title=eixo_y,
-
-        height=350,
-
-        margin=dict(
-
-            l=20,
-
-            r=20,
-
-            t=50,
-
-            b=20
-
-        ),
-
-        hovermode="x unified"
-        
-        xaxis=dict(
-            tickformat="%d/%m\n%H:%M"
-        )
-
-    )
-
-
-    st.plotly_chart(
-
-        fig,
-
-        use_container_width=True
-
-    )
-
-
-# ============================================================
-# FREQUÊNCIA CARDÍACA
+# FREQUÊNCIA CARDÍACA E SATURAÇÃO
 # ============================================================
 
 col1, col2 = st.columns(2)
@@ -808,16 +907,10 @@ with col1:
 
         "❤️ Frequência Cardíaca",
 
-        "FC (bpm)",
-
-        "bpm"
+        "FC (bpm)"
 
     )
 
-
-# ============================================================
-# SATURAÇÃO
-# ============================================================
 
 with col2:
 
@@ -830,9 +923,7 @@ with col2:
 
         "⭕ Saturação de Oxigênio",
 
-        "SpO₂ (%)",
-
-        "%"
+        "SpO₂ (%)"
 
     )
 
@@ -849,12 +940,12 @@ st.subheader(
 )
 
 
+col1, col2 = st.columns(2)
+
+
 # ============================================================
 # PRESSÃO SISTÓLICA
 # ============================================================
-
-col1, col2 = st.columns(2)
-
 
 with col1:
 
@@ -867,9 +958,7 @@ with col1:
 
         "Pressão Sistólica",
 
-        "Pressão (mmHg)",
-
-        "mmHg"
+        "Pressão (mmHg)"
 
     )
 
@@ -889,9 +978,7 @@ with col2:
 
         "Pressão Diastólica",
 
-        "Pressão (mmHg)",
-
-        "mmHg"
+        "Pressão (mmHg)"
 
     )
 
@@ -916,9 +1003,7 @@ grafico_temporal(
 
     "Evolução da Temperatura Corporal",
 
-    "Temperatura (°C)",
-
-    "°C"
+    "Temperatura (°C)"
 
 )
 
@@ -961,9 +1046,7 @@ with col1:
 
         "Lactato",
 
-        "Lactato",
-
-        ""
+        "Lactato"
 
     )
 
@@ -983,9 +1066,7 @@ with col2:
 
         "Leucócitos",
 
-        "Leucócitos",
-
-        ""
+        "Leucócitos"
 
     )
 
@@ -1005,9 +1086,7 @@ with col3:
 
         "Creatinina",
 
-        "Creatinina",
-
-        ""
+        "Creatinina"
 
     )
 
@@ -1040,9 +1119,7 @@ grafico_temporal(
 
     "Evolução do Score Clínico",
 
-    "Score Clínico",
-
-    ""
+    "Score Clínico"
 
 )
 
