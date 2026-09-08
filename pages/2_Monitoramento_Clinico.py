@@ -42,7 +42,8 @@ aplicar_estilo()
 
 # ============================================================
 # AJUSTES VISUAIS COMPLEMENTARES
-# Paleta profissional e contraste para modo claro/escuro
+# Visual limpo, branco, cinza e azul
+# Compatível com modo claro e escuro
 # ============================================================
 
 st.markdown(
@@ -50,19 +51,19 @@ st.markdown(
     <style>
 
     /* =======================================================
-       PALETA E FUNDO GERAL
+       FUNDO PRINCIPAL
+       Fundo branco e visual clínico/profissional
     ======================================================= */
 
     .stApp {
-        background:
-            linear-gradient(
-                135deg,
-                rgba(15, 23, 42, 0.96),
-                rgba(30, 41, 59, 0.94)
-            );
+        background-color: #F7F9FC !important;
+        color: #1F2937 !important;
     }
 
-    /* Área principal */
+    .main {
+        background-color: #F7F9FC !important;
+    }
+
     .main .block-container {
         padding-top: 2rem;
         padding-bottom: 2rem;
@@ -72,69 +73,85 @@ st.markdown(
        TEXTOS
     ======================================================= */
 
-    h1, h2, h3,
+    h1, h2, h3 {
+        color: #1E3A5F !important;
+    }
+
+    p, span, label,
     .stMarkdown,
-    .stMarkdown p,
-    .stCaption,
-    p, span, label {
-        color: #F8FAFC;
+    .stMarkdown p {
+        color: #374151;
     }
 
     /* =======================================================
        SIDEBAR
+       Azul profissional com alto contraste
     ======================================================= */
 
     section[data-testid="stSidebar"] {
         background: linear-gradient(
             180deg,
-            #0F172A 0%,
-            #172554 100%
-        );
-        border-right: 1px solid rgba(148, 163, 184, 0.25);
+            #1E3A5F 0%,
+            #274C77 100%
+        ) !important;
+        border-right: 1px solid #D1D5DB;
     }
 
-    section[data-testid="stSidebar"] * {
-        color: #F8FAFC;
+    section[data-testid="stSidebar"] h1,
+    section[data-testid="stSidebar"] h2,
+    section[data-testid="stSidebar"] h3,
+    section[data-testid="stSidebar"] p,
+    section[data-testid="stSidebar"] span,
+    section[data-testid="stSidebar"] label {
+        color: #FFFFFF !important;
     }
 
     /* =======================================================
-       SELECTBOX / FILTROS
-       Corrige texto branco sobre fundo claro no modo escuro
+       SELECTBOX
+       Campo branco + texto escuro sempre visível
     ======================================================= */
 
     div[data-baseweb="select"] > div {
         background-color: #FFFFFF !important;
-        color: #0F172A !important;
-        border: 1px solid #38BDF8 !important;
+        border: 1px solid #93C5FD !important;
         border-radius: 8px !important;
     }
 
-    div[data-baseweb="select"] span,
-    div[data-baseweb="select"] input,
-    div[data-baseweb="select"] div {
-        color: #0F172A !important;
+    div[data-baseweb="select"] * {
+        color: #1F2937 !important;
+    }
+
+    div[data-baseweb="select"] svg {
+        fill: #2563EB !important;
     }
 
     /* Valor selecionado */
-    div[data-baseweb="select"] [data-testid="stMarkdownContainer"],
-    div[data-baseweb="select"] [data-testid="stMarkdownContainer"] p {
-        color: #0F172A !important;
+    div[data-baseweb="select"] input {
+        color: #1F2937 !important;
+        -webkit-text-fill-color: #1F2937 !important;
     }
 
-    /* Menu suspenso */
+    /* =======================================================
+       MENU DO SELECTBOX
+    ======================================================= */
+
     div[role="listbox"] {
         background-color: #FFFFFF !important;
-        border: 1px solid #38BDF8 !important;
+        border: 1px solid #93C5FD !important;
     }
 
     div[role="option"] {
         background-color: #FFFFFF !important;
-        color: #0F172A !important;
+        color: #1F2937 !important;
+    }
+
+    div[role="option"] * {
+        color: #1F2937 !important;
     }
 
     div[role="option"]:hover {
-        background-color: #E0F2FE !important;
-        color: #0F172A !important;
+        background-color: #EFF6FF !important;
+        color: #1E3A5F !important;
     }
 
     /* =======================================================
@@ -143,62 +160,40 @@ st.markdown(
 
     div[data-testid="stDateInput"] input {
         background-color: #FFFFFF !important;
-        color: #0F172A !important;
-        border: 1px solid #38BDF8 !important;
+        color: #1F2937 !important;
+        -webkit-text-fill-color: #1F2937 !important;
+        border: 1px solid #93C5FD !important;
+        border-radius: 8px !important;
     }
 
     div[data-testid="stDateInput"] svg {
-        fill: #0F172A !important;
+        fill: #2563EB !important;
     }
 
     /* =======================================================
-       KPI / METRICS
+       KPI / MÉTRICAS
+       Mantém exatamente o layout original
     ======================================================= */
 
     div[data-testid="stMetric"] {
-        background: linear-gradient(
-            135deg,
-            rgba(30, 41, 59, 0.98),
-            rgba(51, 65, 85, 0.98)
-        );
-        border: 1px solid rgba(56, 189, 248, 0.45);
-        border-radius: 12px;
-        padding: 16px;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+        background-color: #FFFFFF !important;
+        border: 1px solid #D1D5DB !important;
+        border-left: 4px solid #2563EB !important;
+        border-radius: 10px !important;
+        padding: 16px !important;
+        box-shadow: 0 2px 8px rgba(31, 41, 55, 0.08);
     }
 
-    div[data-testid="stMetricLabel"] {
-        color: #BAE6FD !important;
-    }
-
+    div[data-testid="stMetricLabel"],
     div[data-testid="stMetricLabel"] p {
-        color: #BAE6FD !important;
-        font-weight: 600;
+        color: #4B5563 !important;
+        font-weight: 600 !important;
     }
 
-    div[data-testid="stMetricValue"] {
-        color: #FFFFFF !important;
-    }
-
+    div[data-testid="stMetricValue"],
     div[data-testid="stMetricValue"] div {
-        color: #FFFFFF !important;
-    }
-
-    /* =======================================================
-       BOTÕES
-    ======================================================= */
-
-    .stButton > button {
-        background-color: #0284C7;
-        color: #FFFFFF;
-        border: 1px solid #38BDF8;
-        border-radius: 8px;
-    }
-
-    .stButton > button:hover {
-        background-color: #0369A1;
-        color: #FFFFFF;
-        border-color: #7DD3FC;
+        color: #1E3A5F !important;
+        font-weight: 700 !important;
     }
 
     /* =======================================================
@@ -206,18 +201,18 @@ st.markdown(
     ======================================================= */
 
     details {
-        background-color: rgba(30, 41, 59, 0.85);
-        border: 1px solid rgba(56, 189, 248, 0.30);
-        border-radius: 10px;
+        background-color: #FFFFFF !important;
+        border: 1px solid #D1D5DB !important;
+        border-radius: 10px !important;
     }
 
     details summary {
-        color: #F8FAFC !important;
-        font-weight: 600;
+        color: #1E3A5F !important;
+        font-weight: 600 !important;
     }
 
     /* =======================================================
-       ALERTAS / CAIXAS INFORMATIVAS
+       ALERTAS
     ======================================================= */
 
     div[data-testid="stAlert"] {
@@ -229,7 +224,33 @@ st.markdown(
     ======================================================= */
 
     hr {
-        border-color: rgba(148, 163, 184, 0.25) !important;
+        border-color: #D1D5DB !important;
+    }
+
+    /* =======================================================
+       DATAFRAME
+    ======================================================= */
+
+    div[data-testid="stDataFrame"] {
+        border: 1px solid #D1D5DB;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    /* =======================================================
+       BOTÕES
+    ======================================================= */
+
+    .stButton > button {
+        background-color: #2563EB !important;
+        color: #FFFFFF !important;
+        border: 1px solid #1D4ED8 !important;
+        border-radius: 8px !important;
+    }
+
+    .stButton > button:hover {
+        background-color: #1D4ED8 !important;
+        color: #FFFFFF !important;
     }
 
     </style>
