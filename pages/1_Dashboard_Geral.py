@@ -1187,7 +1187,7 @@ filtro_prioridade = st.sidebar.selectbox(
 # FILTRO DIAGNÓSTICO INICIAL
 # ============================================================
 
-COLUNA_DIAGNOSTICO_INICIAL = "diagnostico_inicial"
+COLUNA_DIAGNOSTICO_INICIAL = "diagnostico_principal"
 
 if COLUNA_DIAGNOSTICO_INICIAL in df.columns:
 
