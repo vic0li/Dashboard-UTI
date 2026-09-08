@@ -20,7 +20,7 @@ from utils.styling import aplicar_estilo
 # ============================================================
 
 st.set_page_config(
-    page_title="Dashboard Gestão da UTI",
+    page_title="UTI Intelligent Care",
     page_icon="",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -108,8 +108,8 @@ else:
 # HEADER / HERO SECTION (Layout refinado)
 # ============================================================
 
-st.title("Dashboard Gestão da UTI")
-st.caption("🛡️ ICU Sentinel · Monitoramento Preditivo e Inteligência Operacional")
+st.title("Dashboard Inteligente para Gestão da UTI")
+st.caption("🛡️ Monitoramento Preditivo e Inteligência Operacional")
 
 st.markdown(
     """
