@@ -395,17 +395,17 @@ st.markdown(
 # Tons padronizados de azul para manter consistência visual
 # ============================================================
 
-AZUL_ESCURO = "#1E3A5F"
+AZUL_ESCURO = "#12355B"
 
-AZUL_PRINCIPAL = "#2563EB"
+AZUL_PRINCIPAL = "#0B5CAD"
 
-AZUL_MEDIO = "#3B82F6"
+AZUL_MEDIO = "#1677C8"
 
-AZUL_CLARO = "#60A5FA"
+AZUL_CLARO = "#4FA3E3"
 
-AZUL_MUITO_CLARO = "#93C5FD"
+AZUL_MUITO_CLARO = "#8CCAF0"
 
-AZUL_SUAVE = "#DBEAFE"
+AZUL_SUAVE = "#E7F2FB"
 
 CINZA_TEXTO = "#4B5563"
 
@@ -1184,6 +1184,39 @@ filtro_prioridade = st.sidebar.selectbox(
 
 
 # ============================================================
+# FILTRO DIAGNÓSTICO INICIAL
+# ============================================================
+
+COLUNA_DIAGNOSTICO_INICIAL = "diagnostico_inicial"
+
+if COLUNA_DIAGNOSTICO_INICIAL in df.columns:
+
+    opcoes_diagnostico = (
+        ["Todos"]
+        + sorted(
+            df[COLUNA_DIAGNOSTICO_INICIAL]
+            .dropna()
+            .astype(str)
+            .unique()
+            .tolist()
+        )
+    )
+
+    filtro_diagnostico = st.sidebar.selectbox(
+        "🏥 Diagnóstico inicial",
+        options=opcoes_diagnostico
+    )
+
+else:
+
+    filtro_diagnostico = "Todos"
+
+    st.sidebar.caption(
+        "ℹ️ Coluna 'diagnostico_inicial' não disponível."
+    )
+
+
+# ============================================================
 # FILTROS ATIVOS
 # ============================================================
 
@@ -1230,6 +1263,15 @@ if filtro_prioridade != "Todas":
     filtros_ativos.append(
 
         f"Prioridade: {filtro_prioridade}"
+
+    )
+
+
+if filtro_diagnostico != "Todos":
+
+    filtros_ativos.append(
+
+        f"Diagnóstico: {filtro_diagnostico}"
 
     )
 
@@ -1352,6 +1394,27 @@ if filtro_prioridade != "Todas":
             .astype(str)
 
             == filtro_prioridade
+
+        ]
+
+
+# ============================================================
+# FILTRO DIAGNÓSTICO INICIAL
+# ============================================================
+
+if filtro_diagnostico != "Todos":
+
+    if COLUNA_DIAGNOSTICO_INICIAL in df_filtrado.columns:
+
+        df_filtrado = df_filtrado[
+
+            df_filtrado[
+                COLUNA_DIAGNOSTICO_INICIAL
+            ]
+
+            .astype(str)
+
+            == filtro_diagnostico
 
         ]
 
@@ -2054,6 +2117,12 @@ possiveis_colunas_motivo = [
 
     "motivo",
 
+    "diagnostico_inicial",
+
+    "diagnóstico_inicial",
+
+    "Diagnóstico Inicial",
+
     "diagnostico",
 
     "diagnóstico"
@@ -2085,7 +2154,7 @@ if coluna_motivo is not None:
 
 
     st.header(
-        "🏥 Motivos de Internação"
+        "🏥 Motivos de Internação / Diagnóstico Inicial"
     )
 
 
