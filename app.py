@@ -159,7 +159,7 @@ temp_media = f"{df_pacientes['temperatura'].mean():.1f}°C" if "temperatura" in 
 
 m1, m2, m3, m4, m5 = st.columns(5)
 with m1:
-    st.metric(" Pacientes", total_pacientes)
+    st.metric("👥 Pacientes", total_pacientes)
 with m2:
     st.metric("⚠️ Alertas Atuais", total_alertas_val)
 with m3:
