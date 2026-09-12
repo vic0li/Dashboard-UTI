@@ -1,922 +1,223 @@
 # ============================================================
-# DASHBOARD GERAL
+# VISÃO GERAL DA UTI
 # UTI INTELLIGENT CARE
 #
-# Visão integrada dos indicadores clínicos, risco de LPP,
-# alertas e priorização de pacientes.
-#
-
-
-
-# ============================================================
-# IMPORTS
+# Painel executivo com síntese clínica, preventiva e operacional.
+# As análises detalhadas permanecem nas páginas especializadas.
 # ============================================================
 
-import streamlit as st
+from pathlib import Path
+
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
+import streamlit as st
 
 from utils.data_loader import load_data
 from utils.analytics import processar_dados
 from utils.risk_engine import processar_riscos
-from utils.styling import aplicar_estilo
-
-
-# ============================================================
-# CONFIGURAÇÃO DA PÁGINA
-# ============================================================
-
-st.set_page_config(
-    page_title="Dashboard Geral | UTI Intelligent Care",
-    page_icon="📊",
-    layout="wide"
+from utils.styling import (
+    aplicar_estilo,
+    topo_produto,
+    navegacao_topo,
+    cabecalho_pagina,
 )
 
 
 # ============================================================
-# ESTILO BASE
+# CONFIGURAÇÃO
 # ============================================================
+
+st.set_page_config(
+    page_title="Visão Geral | UTI Intelligent Care",
+    page_icon="",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
 
 aplicar_estilo()
+topo_produto()
+navegacao_topo("Visão geral")
 
 
 # ============================================================
-# AJUSTES VISUAIS COMPLEMENTARES
-#
-# Visual padronizado com a página:
-# MONITORAMENTO CLÍNICO
-#
-# Fundo claro
-# Sidebar azul
-# KPIs profissionais
-# Gráficos em tons de azul
+# CSS DA PÁGINA
 # ============================================================
 
 st.markdown(
     """
     <style>
-
-    /* =======================================================
-    FUNDO PRINCIPAL
-    ======================================================= */
-
-    .stApp {
-        background-color: #F7F9FC !important;
-        color: #1F2937 !important;
+    .overview-section-title {
+        color:#0D2A45;
+        font-size:25px;
+        font-weight:850;
+        letter-spacing:-0.02em;
+        margin:8px 0 4px 0;
     }
 
-    .main {
-        background-color: #F7F9FC !important;
+    .overview-section-subtitle {
+        color:#738B9C;
+        font-size:15px;
+        margin-bottom:12px;
     }
 
-    .main .block-container {
-        padding-top: 2rem;
-        padding-bottom: 2rem;
-        max-width: 1500px;
+    .overview-card {
+        background:#FFFFFF;
+        border:1px solid #D8E4EC;
+        border-radius:15px;
+        padding:18px 20px;
+        box-shadow:0 4px 14px rgba(21,61,89,.035);
     }
 
-
-    /* =======================================================
-    TEXTOS
-    ======================================================= */
-
-    h1,
-    h2,
-    h3 {
-        color: #1E3A5F !important;
+    .overview-small-title {
+        color:#173E59;
+        font-size:17px;
+        font-weight:800;
+        margin-bottom:6px;
     }
 
-    p,
-    span,
-    label,
-    .stMarkdown,
-    .stMarkdown p {
-        color: #374151;
+    .overview-small-text {
+        color:#647F91;
+        font-size:14px;
+        line-height:1.5;
     }
 
-
-    /* =======================================================
-    SIDEBAR
-    ======================================================= */
-
-    section[data-testid="stSidebar"] {
-        background: linear-gradient(
-            180deg,
-            #1E3A5F 0%,
-            #274C77 100%
-        ) !important;
-
-        border-right: 1px solid #D1D5DB;
+    .overview-number {
+        color:#0D2A45;
+        font-size:31px;
+        font-weight:850;
+        letter-spacing:-0.03em;
+        margin-top:7px;
+        margin-bottom:2px;
     }
 
-
-    section[data-testid="stSidebar"] h1,
-    section[data-testid="stSidebar"] h2,
-    section[data-testid="stSidebar"] h3,
-    section[data-testid="stSidebar"] p,
-    section[data-testid="stSidebar"] span,
-    section[data-testid="stSidebar"] label,
-    section[data-testid="stSidebar"] div {
-        color: #FFFFFF !important;
+    .overview-status {
+        color:#6F8798;
+        font-size:13px;
+        font-weight:650;
     }
 
-
-    /* =======================================================
-    INPUT DE BUSCA
-    ======================================================= */
-
-    section[data-testid="stSidebar"] input {
-        background-color: #FFFFFF !important;
-        color: #1F2937 !important;
-
-        -webkit-text-fill-color: #1F2937 !important;
-
-        border: 1px solid #93C5FD !important;
-
-        border-radius: 8px !important;
+    .overview-insight {
+        background:#F6FAFC;
+        border:1px solid #DCE8EF;
+        border-radius:12px;
+        padding:14px 16px;
+        color:#526F83;
+        font-size:14px;
+        line-height:1.55;
+        margin-top:10px;
     }
-
-    section[data-testid="stSidebar"] input::placeholder {
-        color: #6B7280 !important;
-        opacity: 1 !important;
-    }
-
-
-    /* =======================================================
-    SELECTBOX
-    ======================================================= */
-
-    section[data-testid="stSidebar"]
-    div[data-baseweb="select"] > div {
-
-        background-color: #FFFFFF !important;
-
-        border: 1px solid #93C5FD !important;
-
-        border-radius: 8px !important;
-    }
-
-
-    section[data-testid="stSidebar"]
-    div[data-baseweb="select"] * {
-
-        color: #1F2937 !important;
-    }
-
-
-    section[data-testid="stSidebar"]
-    div[data-baseweb="select"] svg {
-
-        fill: #2563EB !important;
-    }
-
-
-    /* =======================================================
-    MENU DO SELECTBOX
-    ======================================================= */
-
-    div[role="listbox"] {
-
-        background-color: #FFFFFF !important;
-
-        border: 1px solid #93C5FD !important;
-    }
-
-
-    div[role="option"] {
-
-        background-color: #FFFFFF !important;
-
-        color: #1F2937 !important;
-    }
-
-
-    div[role="option"] * {
-
-        color: #1F2937 !important;
-    }
-
-
-    div[role="option"]:hover {
-
-        background-color: #EFF6FF !important;
-
-        color: #1E3A5F !important;
-    }
-
-
-    /* =======================================================
-    KPIs / MÉTRICAS
-    ======================================================= */
-
-    div[data-testid="stMetric"] {
-
-        background-color: #FFFFFF !important;
-
-        border: 1px solid #D1D5DB !important;
-
-        border-left: 4px solid #2563EB !important;
-
-        border-radius: 10px !important;
-
-        padding: 16px !important;
-
-        box-shadow:
-            0 2px 8px rgba(
-                31,
-                41,
-                55,
-                0.08
-            );
-    }
-
-
-    div[data-testid="stMetricLabel"],
-    div[data-testid="stMetricLabel"] p {
-
-        color: #4B5563 !important;
-
-        font-weight: 600 !important;
-    }
-
-
-    div[data-testid="stMetricValue"],
-    div[data-testid="stMetricValue"] div {
-
-        color: #1E3A5F !important;
-
-        font-weight: 700 !important;
-    }
-
-
-    /* =======================================================
-    EXPANDERS
-    ======================================================= */
-
-    details {
-
-        background-color: #FFFFFF !important;
-
-        border: 1px solid #D1D5DB !important;
-
-        border-radius: 10px !important;
-    }
-
-
-    details summary {
-
-        color: #1E3A5F !important;
-
-        font-weight: 600 !important;
-    }
-
-
-    /* =======================================================
-    ALERTAS
-    ======================================================= */
-
-    div[data-testid="stAlert"] {
-
-        border-radius: 10px;
-    }
-
-
-    /* =======================================================
-    DIVISORES
-    ======================================================= */
-
-    hr {
-
-        border-color: #D1D5DB !important;
-    }
-
-
-    /* =======================================================
-    DATAFRAME
-    ======================================================= */
-
-    div[data-testid="stDataFrame"] {
-
-        border: 1px solid #D1D5DB;
-
-        border-radius: 8px;
-
-        overflow: hidden;
-
-        background-color: #FFFFFF;
-    }
-
-
-    /* =======================================================
-    GRÁFICOS
-    ======================================================= */
-
-    div[data-testid="stPlotlyChart"] {
-
-        background-color: #FFFFFF;
-
-        border-radius: 10px;
-    }
-
-
-    /* =======================================================
-    BOTÕES
-    ======================================================= */
-
-    .stButton > button {
-
-        background-color: #2563EB !important;
-
-        color: #FFFFFF !important;
-
-        border: 1px solid #1D4ED8 !important;
-
-        border-radius: 8px !important;
-    }
-
-
-    .stButton > button:hover {
-
-        background-color: #1D4ED8 !important;
-
-        color: #FFFFFF !important;
-    }
-
-
-    /* =======================================================
-    SIDEBAR DIVIDER
-    ======================================================= */
-
-    section[data-testid="stSidebar"] hr {
-
-        border-color: rgba(
-            255,
-            255,
-            255,
-            0.25
-        ) !important;
-    }
-
-
-    /* =======================================================
-    CAPTION DA SIDEBAR
-    ======================================================= */
-
-    section[data-testid="stSidebar"]
-    [data-testid="stCaptionContainer"] {
-
-        color: #DCE6F2 !important;
-    }
-
-
-    section[data-testid="stSidebar"]
-    [data-testid="stCaptionContainer"] p {
-
-        color: #DCE6F2 !important;
-    }
-
     </style>
     """,
-    unsafe_allow_html=True
+    unsafe_allow_html=True,
 )
 
 
 # ============================================================
-# PALETA DE CORES
-#
-# Tons padronizados de azul para manter consistência visual
+# FUNÇÕES AUXILIARES
 # ============================================================
 
-AZUL_ESCURO = "#12355B"
-
-AZUL_PRINCIPAL = "#0B5CAD"
-
-AZUL_MEDIO = "#1677C8"
-
-AZUL_CLARO = "#4FA3E3"
-
-AZUL_MUITO_CLARO = "#8CCAF0"
-
-AZUL_SUAVE = "#E7F2FB"
-
-CINZA_TEXTO = "#4B5563"
-
-CINZA_GRID = "#E5E7EB"
-
-
-PALETA_AZUL = [
-
-    "#1E3A5F",
-
-    "#2563EB",
-
-    "#3B82F6",
-
-    "#60A5FA",
-
-    "#93C5FD"
-
-]
-
-
-# ============================================================
-# FUNÇÃO DE CONVERSÃO DO TIMESTAMP
-# ============================================================
-
-def converter_timestamp(serie):
-
-    """
-    Converte timestamps priorizando o formato:
-
-    DD/MM/AAAA HH:MM
-
-    Também aceita:
-
-    DD/MM/AAAA HH:MM:SS
-
-    Caso existam formatos alternativos,
-    realiza uma tentativa adicional
-    utilizando dayfirst=True.
-    """
-
-    serie_original = (
-        serie
-        .astype(str)
-        .str.strip()
-    )
-
-
-    # ========================================================
-    # PRIMEIRA TENTATIVA
-    #
-    # DD/MM/AAAA HH:MM
-    # ========================================================
-
-    serie_convertida = pd.to_datetime(
-
-        serie_original,
-
-        format="%d/%m/%Y %H:%M",
-
-        errors="coerce"
-
-    )
-
-
-    # ========================================================
-    # SEGUNDA TENTATIVA
-    #
-    # DD/MM/AAAA HH:MM:SS
-    # ========================================================
-
-    mascara_invalida = (
-        serie_convertida
-        .isna()
-    )
-
-
-    if mascara_invalida.any():
-
-        tentativa = pd.to_datetime(
-
-            serie_original.loc[
-                mascara_invalida
-            ],
-
-            format="%d/%m/%Y %H:%M:%S",
-
-            errors="coerce"
-
-        )
-
-
-        serie_convertida.loc[
-            mascara_invalida
-        ] = tentativa
-
-
-    # ========================================================
-    # TERCEIRA TENTATIVA
-    #
-    # CONVERSÃO FLEXÍVEL
-    # ========================================================
-
-    mascara_invalida = (
-        serie_convertida
-        .isna()
-    )
-
-
-    if mascara_invalida.any():
-
-        tentativa = pd.to_datetime(
-
-            serie_original.loc[
-                mascara_invalida
-            ],
-
-            errors="coerce",
-
-            dayfirst=True
-
-        )
-
-
-        serie_convertida.loc[
-            mascara_invalida
-        ] = tentativa
-
-
-    return serie_convertida
-
-
-# ============================================================
-# FUNÇÃO PARA FORMATAR TIMESTAMP
-# ============================================================
-
-def formatar_timestamp(data):
-
-    if pd.isna(data):
-
-        return "N/D"
-
-
-    return data.strftime(
-        "%d/%m/%Y %H:%M"
-    )
-
-
-# ============================================================
-# FUNÇÃO PARA OBTER O ÚLTIMO REGISTRO
-# DE CADA PACIENTE
-# ============================================================
-
-def obter_ultimo_registro_por_paciente(dataframe):
-
-    """
-    Retorna apenas o último registro temporal
-    disponível para cada paciente.
-    """
-
-    df_temp = dataframe.copy()
-
-
-    # ========================================================
-    # VALIDAÇÃO
-    # ========================================================
-
-    if df_temp.empty:
-
-        return df_temp
-
-
-    if "id_paciente" not in df_temp.columns:
-
-        return df_temp
-
-
-    # ========================================================
-    # TIMESTAMP
-    # ========================================================
-
-    if "timestamp" in df_temp.columns:
-
-
-        df_temp["timestamp"] = converter_timestamp(
-
-            df_temp["timestamp"]
-
-        )
-
-
-        # ====================================================
-        # REMOVE TIMESTAMPS INVÁLIDOS
-        # ====================================================
-
-        df_temp = df_temp.dropna(
-
-            subset=[
-                "timestamp"
-            ]
-
-        )
-
-
-        # ====================================================
-        # ORDENAÇÃO
-        # ====================================================
-
-        df_temp = (
-
-            df_temp
-
-            .sort_values(
-
-                [
-                    "id_paciente",
-                    "timestamp"
-                ]
-
-            )
-
-            .copy()
-
-        )
-
-
-        # ====================================================
-        # ÚLTIMO REGISTRO
-        # ====================================================
-
-        df_temp = (
-
-            df_temp
-
-            .groupby(
-
-                "id_paciente",
-
-                as_index=False
-
-            )
-
-            .tail(1)
-
-        )
-
-
-    else:
-
-
-        # ====================================================
-        # CASO NÃO EXISTA TIMESTAMP
-        # ====================================================
-
-        df_temp = (
-
-            df_temp
-
-            .groupby(
-
-                "id_paciente",
-
-                as_index=False
-
-            )
-
-            .tail(1)
-
-        )
-
-
-    return df_temp
-
-
-# ============================================================
-# FUNÇÃO PARA PADRONIZAR OS GRÁFICOS
-# ============================================================
-
-def estilizar_grafico(
-
-    fig,
-
-    altura=350,
-
-    mostrar_grid_x=True,
-
-    mostrar_grid_y=True
-
-):
-
-
-    # ========================================================
-    # LAYOUT
-    # ========================================================
-
+def tema_plotly(fig, altura=350):
     fig.update_layout(
-
-        paper_bgcolor="#FFFFFF",
-
-        plot_bgcolor="#FFFFFF",
-
-        font=dict(
-
-            family="Arial",
-
-            color="#374151"
-
-        ),
-
+        title_text="",
         height=altura,
-
-        margin=dict(
-
-            l=20,
-
-            r=20,
-
-            t=50,
-
-            b=30
-
+        margin=dict(l=20, r=20, t=18, b=20),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="#FFFFFF",
+        font=dict(
+            family="Segoe UI, Arial, sans-serif",
+            size=15,
+            color="#284A62",
         ),
-
         hoverlabel=dict(
-
             bgcolor="#FFFFFF",
-
-            font_color="#1F2937"
-
+            font_size=14,
+            font_family="Segoe UI",
         ),
-
-        showlegend=False
-
     )
-
-
-    # ========================================================
-    # EIXO X
-    # ========================================================
-
-    fig.update_xaxes(
-
-        showgrid=mostrar_grid_x,
-
-        gridcolor=CINZA_GRID,
-
-        zeroline=False,
-
-        title=None
-
-    )
-
-
-    # ========================================================
-    # EIXO Y
-    # ========================================================
-
-    fig.update_yaxes(
-
-        showgrid=mostrar_grid_y,
-
-        gridcolor=CINZA_GRID,
-
-        zeroline=False,
-
-        title=None
-
-    )
-
-
     return fig
 
 
+def normalizar_texto(valor):
+    if pd.isna(valor):
+        return ""
+    return (
+        str(valor)
+        .strip()
+        .lower()
+        .replace(" ", "_")
+        .replace("-", "_")
+    )
+
+
+def formatar_categoria(valor):
+    if pd.isna(valor):
+        return "Não informado"
+    return (
+        str(valor)
+        .replace("_", " ")
+        .strip()
+        .capitalize()
+    )
+
+
+def detectar_coluna(dataframe, opcoes):
+    for coluna in opcoes:
+        if coluna in dataframe.columns:
+            return coluna
+    return None
+
+
+def carregar_operacional():
+    raiz = Path(__file__).resolve().parent.parent
+
+    candidatos = [
+        raiz / "data" / "UTI_operacional.csv",
+        raiz / "data" / "uti_operacional.csv",
+    ]
+
+    for caminho in candidatos:
+        if caminho.exists():
+            try:
+                op = pd.read_csv(
+                    caminho,
+                    sep=";",
+                    encoding="utf-8-sig",
+                )
+
+                if op.empty:
+                    continue
+
+                if "timestamp" in op.columns:
+                    op["timestamp_dt"] = pd.to_datetime(
+                        op["timestamp"],
+                        errors="coerce",
+                        dayfirst=True,
+                    )
+                    op = op.sort_values("timestamp_dt")
+
+                return op
+
+            except Exception:
+                continue
+
+    return pd.DataFrame()
+
+
 # ============================================================
-# CARREGAMENTO DOS DADOS
+# DADOS CLÍNICOS
 # ============================================================
 
 try:
-
-    df = load_data()
-
-
+    df = load_data().copy()
 except Exception as e:
-
-    st.error(
-        "❌ Não foi possível carregar os dados."
-    )
-
+    st.error("Não foi possível carregar os dados clínicos.")
     st.exception(e)
-
     st.stop()
-
-
-# ============================================================
-# VALIDAÇÃO DA BASE
-# ============================================================
 
 if df.empty:
-
-    st.error(
-        "❌ A base de dados está vazia."
-    )
-
+    st.error("A base clínica está vazia.")
     st.stop()
-
-
-# ============================================================
-# VALIDAÇÃO DO TIMESTAMP
-# ============================================================
-
-if "timestamp" not in df.columns:
-
-    st.error(
-        "❌ A coluna 'timestamp' não foi encontrada."
-    )
-
-    st.stop()
-
-
-# ============================================================
-# PRESERVAÇÃO DO TIMESTAMP ORIGINAL
-# ============================================================
-
-df["timestamp_original"] = (
-
-    df["timestamp"]
-
-    .astype(str)
-
-    .str.strip()
-
-)
-
-
-# ============================================================
-# CONVERSÃO CORRETA DO TIMESTAMP
-#
-# Formato principal da base:
-#
-# DD/MM/AAAA HH:MM
-#
-# Isso impede interpretações incorretas como:
-#
-# MM/DD/AAAA
-# ============================================================
-
-df["timestamp"] = converter_timestamp(
-
-    df["timestamp_original"]
-
-)
-
-
-# ============================================================
-# QUANTIDADE DE TIMESTAMPS INVÁLIDOS
-# ============================================================
-
-quantidade_timestamps_invalidos = (
-
-    df["timestamp"]
-
-    .isna()
-
-    .sum()
-
-)
-
-
-# ============================================================
-# REMOÇÃO DE TIMESTAMPS INVÁLIDOS
-# ============================================================
-
-df = df.dropna(
-
-    subset=[
-        "timestamp"
-    ]
-
-)
-
-
-# ============================================================
-# VALIDAÇÃO
-# ============================================================
-
-if df.empty:
-
-    st.error(
-        """
-        ❌ Não existem timestamps válidos na base.
-
-        O formato esperado é:
-
-        DD/MM/AAAA HH:MM
-
-        Exemplo:
-
-        07/09/2026 20:00
-        """
-    )
-
-    st.stop()
-
-
-# ============================================================
-# ORDENAÇÃO TEMPORAL INICIAL
-# ============================================================
-
-df = (
-
-    df
-
-    .sort_values(
-        "timestamp"
-    )
-
-    .copy()
-
-)
 
 
 # ============================================================
@@ -924,1845 +225,876 @@ df = (
 # ============================================================
 
 try:
-
     df = processar_dados(df)
-
-
-except Exception as e:
-
-    st.error(
-        "❌ Erro no processamento analítico."
-    )
-
-    st.exception(e)
-
-    st.stop()
-
-
-# ============================================================
-# MOTOR DE RISCO
-# ============================================================
+except Exception:
+    pass
 
 try:
-
     df = processar_riscos(df)
+except Exception:
+    pass
 
 
-except Exception as e:
+# ============================================================
+# TIMESTAMP
+# ============================================================
 
-    st.error(
-        "❌ Erro no motor de risco."
+if "timestamp" in df.columns:
+    df["timestamp_dt"] = pd.to_datetime(
+        df["timestamp"],
+        errors="coerce",
+        dayfirst=True,
     )
-
-    st.exception(e)
-
-    st.stop()
-
-
-# ============================================================
-# ORDENAÇÃO FINAL
-# ============================================================
-
-df = (
-
-    df
-
-    .sort_values(
-        "timestamp"
-    )
-
-    .copy()
-
-)
-
-
-# ============================================================
-# HEADER
-# ============================================================
-
-st.title(
-    "📊 Dashboard Geral"
-)
-
-
-st.caption(
-    """
-    Visão integrada dos indicadores clínicos,
-    riscos, alertas e prioridades dos pacientes
-    da UTI.
-    """
-)
-
-
-st.divider()
-
-
-# ============================================================
-# SIDEBAR
-# ============================================================
-
-st.sidebar.header(
-    "🔍 Filtros"
-)
-
-
-st.sidebar.caption(
-    """
-    Utilize os filtros abaixo para atualizar
-    automaticamente todos os indicadores,
-    gráficos e tabelas.
-    """
-)
-
-
-st.sidebar.divider()
-
-
-# ============================================================
-# BUSCA POR PACIENTE
-# ============================================================
-
-busca_paciente = st.sidebar.text_input(
-
-    "🔎 Buscar paciente",
-
-    placeholder="Ex: 1 ou PAC-001"
-
-)
-
-
-# ============================================================
-# FILTRO CLÍNICO
-# ============================================================
-
-if "classificacao_clinica" in df.columns:
-
-
-    opcoes_clinicas = (
-
-        ["Todas"]
-
-        +
-
-        sorted(
-
-            df[
-                "classificacao_clinica"
-            ]
-
-            .dropna()
-
-            .astype(str)
-
-            .unique()
-
-            .tolist()
-
-        )
-
-    )
-
-
 else:
-
-    opcoes_clinicas = [
-        "Todas"
-    ]
-
-
-filtro_clinico = st.sidebar.selectbox(
-
-    "🩺 Situação Clínica",
-
-    options=opcoes_clinicas
-
-)
+    df["timestamp_dt"] = pd.NaT
 
 
 # ============================================================
-# FILTRO LPP
-# ============================================================
-
-if "classificacao_lpp" in df.columns:
-
-
-    opcoes_lpp = (
-
-        ["Todas"]
-
-        +
-
-        sorted(
-
-            df[
-                "classificacao_lpp"
-            ]
-
-            .dropna()
-
-            .astype(str)
-
-            .unique()
-
-            .tolist()
-
-        )
-
-    )
-
-
-else:
-
-    opcoes_lpp = [
-        "Todas"
-    ]
-
-
-filtro_lpp = st.sidebar.selectbox(
-
-    "🩹 Risco de LPP",
-
-    options=opcoes_lpp
-
-)
-
-
-# ============================================================
-# FILTRO PRIORIDADE
-# ============================================================
-
-if "classificacao_prioridade" in df.columns:
-
-
-    opcoes_prioridade = (
-
-        ["Todas"]
-
-        +
-
-        sorted(
-
-            df[
-                "classificacao_prioridade"
-            ]
-
-            .dropna()
-
-            .astype(str)
-
-            .unique()
-
-            .tolist()
-
-        )
-
-    )
-
-
-else:
-
-    opcoes_prioridade = [
-        "Todas"
-    ]
-
-
-filtro_prioridade = st.sidebar.selectbox(
-
-    "🎯 Prioridade",
-
-    options=opcoes_prioridade
-
-)
-
-
-# ============================================================
-# FILTROS ATIVOS
-# ============================================================
-
-st.sidebar.divider()
-
-
-st.sidebar.subheader(
-    "📌 Filtros Ativos"
-)
-
-
-filtros_ativos = []
-
-
-if busca_paciente.strip():
-
-    filtros_ativos.append(
-
-        f"Paciente: {busca_paciente}"
-
-    )
-
-
-if filtro_clinico != "Todas":
-
-    filtros_ativos.append(
-
-        f"Clínico: {filtro_clinico}"
-
-    )
-
-
-if filtro_lpp != "Todas":
-
-    filtros_ativos.append(
-
-        f"LPP: {filtro_lpp}"
-
-    )
-
-
-if filtro_prioridade != "Todas":
-
-    filtros_ativos.append(
-
-        f"Prioridade: {filtro_prioridade}"
-
-    )
-
-
-if filtros_ativos:
-
-
-    for filtro in filtros_ativos:
-
-        st.sidebar.markdown(
-
-            f"🔹 **{filtro}**"
-
-        )
-
-
-else:
-
-    st.sidebar.caption(
-        "Nenhum filtro aplicado."
-    )
-
-
-# ============================================================
-# APLICAÇÃO DOS FILTROS
-# ============================================================
-
-df_filtrado = df.copy()
-
-
-# ============================================================
-# BUSCA POR PACIENTE
-# ============================================================
-
-if busca_paciente.strip():
-
-    if "id_paciente" in df_filtrado.columns:
-
-
-        df_filtrado = df_filtrado[
-
-            df_filtrado[
-                "id_paciente"
-            ]
-
-            .astype(str)
-
-            .str.contains(
-
-                busca_paciente.strip(),
-
-                case=False,
-
-                na=False
-
-            )
-
-        ]
-
-
-# ============================================================
-# FILTRO CLÍNICO
-# ============================================================
-
-if filtro_clinico != "Todas":
-
-    if "classificacao_clinica" in df_filtrado.columns:
-
-
-        df_filtrado = df_filtrado[
-
-            df_filtrado[
-                "classificacao_clinica"
-            ]
-
-            .astype(str)
-
-            == filtro_clinico
-
-        ]
-
-
-# ============================================================
-# FILTRO LPP
-# ============================================================
-
-if filtro_lpp != "Todas":
-
-    if "classificacao_lpp" in df_filtrado.columns:
-
-
-        df_filtrado = df_filtrado[
-
-            df_filtrado[
-                "classificacao_lpp"
-            ]
-
-            .astype(str)
-
-            == filtro_lpp
-
-        ]
-
-
-# ============================================================
-# FILTRO PRIORIDADE
-# ============================================================
-
-if filtro_prioridade != "Todas":
-
-    if "classificacao_prioridade" in df_filtrado.columns:
-
-
-        df_filtrado = df_filtrado[
-
-            df_filtrado[
-                "classificacao_prioridade"
-            ]
-
-            .astype(str)
-
-            == filtro_prioridade
-
-        ]
-
-
-# ============================================================
-# VALIDAÇÃO DOS FILTROS
-# ============================================================
-
-if df_filtrado.empty:
-
-    st.warning(
-        """
-        ⚠️ Nenhum registro foi encontrado
-        para os filtros selecionados.
-        """
-    )
-
-
-    st.info(
-        "Altere ou remova algum filtro para visualizar os dados."
-    )
-
-    st.stop()
-
-
-# ============================================================
-# VISÃO CONSOLIDADA
-#
-# Último registro de cada paciente
-# ============================================================
-
-df_pacientes = (
-
-    obter_ultimo_registro_por_paciente(
-        df_filtrado
-    )
-
-)
-
-
-# ============================================================
-# SITUAÇÃO GERAL
-# ============================================================
-
-st.subheader(
-    "📌 Situação Geral"
-)
-
-
-st.caption(
-    """
-    Indicadores baseados na situação mais recente
-    disponível de cada paciente.
-    """
-)
-
-
-# ============================================================
-# PACIENTES ÚNICOS
-# ============================================================
-
-if "id_paciente" in df_pacientes.columns:
-
-    pacientes = (
-
-        df_pacientes[
-            "id_paciente"
-        ]
-
-        .nunique()
-
-    )
-
-
-else:
-
-    pacientes = len(
-        df_pacientes
-    )
-
-
-# ============================================================
-# SCORE CLÍNICO
-# ============================================================
-
-if "score_clinico" in df_pacientes.columns:
-
-    score_medio = (
-
-        df_pacientes[
-            "score_clinico"
-        ]
-
-        .mean()
-
-    )
-
-
-    score_medio_formatado = (
-
-        f"{score_medio:.1f}"
-
-        if pd.notna(score_medio)
-
-        else "N/D"
-
-    )
-
-
-else:
-
-    score_medio_formatado = "N/D"
-
-
-# ============================================================
-# SCORE LPP
-# ============================================================
-
-if "score_lpp" in df_pacientes.columns:
-
-    lpp_medio = (
-
-        df_pacientes[
-            "score_lpp"
-        ]
-
-        .mean()
-
-    )
-
-
-    lpp_medio_formatado = (
-
-        f"{lpp_medio:.1f}"
-
-        if pd.notna(lpp_medio)
-
-        else "N/D"
-
-    )
-
-
-else:
-
-    lpp_medio_formatado = "N/D"
-
-
-# ============================================================
-# PACIENTES COM ALERTAS
+# ÚLTIMO REGISTRO POR PACIENTE
 # ============================================================
 
 if (
-
-    "quantidade_alertas" in df_pacientes.columns
-
-    and
-
-    "id_paciente" in df_pacientes.columns
-
+    "id_paciente" in df.columns
+    and df["timestamp_dt"].notna().any()
 ):
-
-
-    pacientes_com_alerta = (
-
-        df_pacientes[
-
-            df_pacientes[
-                "quantidade_alertas"
-            ] > 0
-
-        ][
-            "id_paciente"
-        ]
-
-        .nunique()
-
+    df_atual = (
+        df
+        .dropna(subset=["timestamp_dt"])
+        .sort_values("timestamp_dt")
+        .groupby("id_paciente", as_index=False)
+        .tail(1)
+        .copy()
     )
-
-
+elif "id_paciente" in df.columns:
+    df_atual = (
+        df
+        .drop_duplicates(
+            subset="id_paciente",
+            keep="last",
+        )
+        .copy()
+    )
 else:
-
-    pacientes_com_alerta = "N/D"
-
-
-# ============================================================
-# KPIs
-# ============================================================
-
-col1, col2, col3, col4 = st.columns(4)
-
-
-with col1:
-
-    st.metric(
-
-        "👥 Pacientes",
-
-        pacientes
-
-    )
-
-
-with col2:
-
-    st.metric(
-
-        "🩺 Score Clínico Médio",
-
-        score_medio_formatado
-
-    )
-
-
-with col3:
-
-    st.metric(
-
-        "🩹 Score LPP Médio",
-
-        lpp_medio_formatado
-
-    )
-
-
-with col4:
-
-    st.metric(
-
-        "⚠️ Pacientes com Alertas",
-
-        pacientes_com_alerta
-
-    )
+    df_atual = df.copy()
 
 
 # ============================================================
-# INFORMAÇÕES DA BASE
+# COLUNAS ANALÍTICAS
 # ============================================================
 
-st.divider()
-
-
-st.subheader(
-    "🕒 Informações da Base"
+col_clinico = detectar_coluna(
+    df_atual,
+    [
+        "classificacao_clinica",
+        "nivel_risco_clinico",
+    ],
 )
 
+col_lpp = detectar_coluna(
+    df_atual,
+    [
+        "classificacao_lpp",
+        "nivel_risco_LPP",
+    ],
+)
 
-st.caption(
-    """
-    Resumo dos registros temporais disponíveis
-    após a aplicação dos filtros.
-    """
+col_prioridade = detectar_coluna(
+    df_atual,
+    [
+        "classificacao_prioridade",
+    ],
+)
+
+col_score_clinico = detectar_coluna(
+    df_atual,
+    [
+        "score_clinico",
+        "score_risco_clinico",
+    ],
+)
+
+col_score_lpp = detectar_coluna(
+    df_atual,
+    [
+        "score_lpp",
+        "risco_LPP",
+    ],
 )
 
 
 # ============================================================
-# CÁLCULOS
+# MÉTRICAS CLÍNICAS
 # ============================================================
 
-total_registros = len(
-    df_filtrado
+total_pacientes = (
+    int(df_atual["id_paciente"].nunique())
+    if "id_paciente" in df_atual.columns
+    else len(df_atual)
 )
 
 
-total_pacientes = len(
-    df_pacientes
-)
-
-
-if total_pacientes > 0:
-
-    media_registros = (
-
-        total_registros
-
-        /
-
-        total_pacientes
-
+# Alertas ativos
+if "quantidade_alertas" in df_atual.columns:
+    alertas_ativos = int(
+        pd.to_numeric(
+            df_atual["quantidade_alertas"],
+            errors="coerce",
+        )
+        .fillna(0)
+        .sum()
     )
-
-
 else:
-
-    media_registros = 0
-
-
-# ============================================================
-# PERÍODO
-# ============================================================
-
-periodo_formatado = "N/D"
+    alertas_ativos = 0
 
 
-if "timestamp" in df_filtrado.columns:
+# Pacientes prioritários
+if col_prioridade:
+    serie_prioridade = df_atual[col_prioridade].apply(normalizar_texto)
 
-
-    timestamps_validos = (
-
-        df_filtrado[
-            "timestamp"
+    mascara_prioridade = serie_prioridade.isin(
+        [
+            "alta",
+            "alto",
+            "muito_alta",
+            "muito_alto",
+            "critica",
+            "crítica",
+            "critico",
+            "crítico",
         ]
-
-        .dropna()
-
     )
 
+    pacientes_prioritarios = int(
+        df_atual.loc[mascara_prioridade, "id_paciente"].nunique()
+        if "id_paciente" in df_atual.columns
+        else mascara_prioridade.sum()
+    )
+elif "indice_prioridade" in df_atual.columns:
+    indice = pd.to_numeric(
+        df_atual["indice_prioridade"],
+        errors="coerce",
+    )
+    pacientes_prioritarios = int((indice >= 60).sum())
+else:
+    pacientes_prioritarios = 0
 
-    if not timestamps_validos.empty:
+
+# LPP elevado
+if col_lpp:
+    serie_lpp = df_atual[col_lpp].apply(normalizar_texto)
+
+    mascara_lpp = serie_lpp.isin(
+        [
+            "alto",
+            "alta",
+            "muito_alto",
+            "muito_alta",
+        ]
+    )
+
+    pacientes_lpp_elevado = int(
+        df_atual.loc[mascara_lpp, "id_paciente"].nunique()
+        if "id_paciente" in df_atual.columns
+        else mascara_lpp.sum()
+    )
+else:
+    pacientes_lpp_elevado = 0
 
 
-        inicio = timestamps_validos.min()
+# ============================================================
+# MÉTRICAS OPERACIONAIS
+# ============================================================
 
-        fim = timestamps_validos.max()
+df_op = carregar_operacional()
 
+ocupacao_atual = None
+leitos_disponiveis = None
+pacientes_enfermeiro = None
 
-        periodo_formatado = (
+if not df_op.empty:
 
-            f"{inicio.strftime('%d/%m/%Y %H:%M')}"
+    op_atual = df_op.iloc[-1]
 
-            "\n"
+    if "taxa_ocupacao_pct" in op_atual.index:
+        valor = pd.to_numeric(
+            op_atual["taxa_ocupacao_pct"],
+            errors="coerce",
+        )
+        if pd.notna(valor):
+            ocupacao_atual = float(valor)
 
-            f"até {fim.strftime('%d/%m/%Y %H:%M')}"
-
+    if (
+        "leitos_operacionais" in op_atual.index
+        and "pacientes_internados" in op_atual.index
+    ):
+        operacionais = pd.to_numeric(
+            op_atual["leitos_operacionais"],
+            errors="coerce",
+        )
+        internados = pd.to_numeric(
+            op_atual["pacientes_internados"],
+            errors="coerce",
         )
 
+        if pd.notna(operacionais) and pd.notna(internados):
+            leitos_disponiveis = max(
+                int(operacionais - internados),
+                0,
+            )
 
-# ============================================================
-# KPIs DA BASE
-# ============================================================
-
-col1, col2, col3, col4 = st.columns(4)
-
-
-with col1:
-
-    st.metric(
-
-        "📊 Registros Filtrados",
-
-        f"{total_registros:,}".replace(
-            ",",
-            "."
+    if "pacientes_por_enfermeiro" in op_atual.index:
+        valor = pd.to_numeric(
+            op_atual["pacientes_por_enfermeiro"],
+            errors="coerce",
         )
-
-    )
-
-
-with col2:
-
-    st.metric(
-
-        "👥 Pacientes Únicos",
-
-        total_pacientes
-
-    )
-
-
-with col3:
-
-    st.metric(
-
-        "⏱️ Registros / Paciente",
-
-        f"{media_registros:.1f}"
-
-    )
-
-
-with col4:
-
-    st.metric(
-
-        "📅 Período",
-
-        periodo_formatado
-
-    )
+        if pd.notna(valor):
+            pacientes_enfermeiro = float(valor)
 
 
 # ============================================================
-# DISTRIBUIÇÃO DE RISCOS
+# CABEÇALHO
 # ============================================================
 
-st.divider()
-
-
-st.header(
-    "⚠️ Distribuição de Riscos"
+cabecalho_pagina(
+    "Visão Geral da UTI",
+    (
+        "Síntese executiva dos principais indicadores clínicos, "
+        "preventivos e operacionais da unidade."
+    ),
+    secao="Panorama executivo",
+    badge="Dados simulados",
 )
 
 
-st.caption(
-    """
-    Distribuição baseada na situação mais recente
-    disponível de cada paciente.
-    """
+# ============================================================
+# KPIs EXECUTIVOS
+# ============================================================
+
+st.markdown(
+    '<div class="overview-section-title">Situação atual da UTI</div>',
+    unsafe_allow_html=True,
 )
 
+st.markdown(
+    """
+    <div class="overview-section-subtitle">
+        Indicadores consolidados do registro mais recente de cada paciente
+        e do último período operacional disponível.
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
-col1, col2 = st.columns(2)
+k1, k2, k3, k4, k5 = st.columns(5)
 
+with k1:
+    st.metric(
+        "Pacientes",
+        total_pacientes,
+    )
 
-# ============================================================
-# CLASSIFICAÇÃO CLÍNICA
-# ============================================================
+with k2:
+    st.metric(
+        "Ocupação",
+        (
+            f"{ocupacao_atual:.1f}%"
+            if ocupacao_atual is not None
+            else "N/D"
+        ),
+    )
 
-with col1:
+with k3:
+    st.metric(
+        "Alta prioridade",
+        pacientes_prioritarios,
+    )
 
+with k4:
+    st.metric(
+        "Risco LPP elevado",
+        pacientes_lpp_elevado,
+    )
 
-    st.subheader(
-        "🩺 Classificação Clínica"
+with k5:
+    st.metric(
+        "Alertas ativos",
+        alertas_ativos,
     )
 
 
-    if "classificacao_clinica" in df_pacientes.columns:
+# ============================================================
+# PANORAMA CLÍNICO + RESUMO OPERACIONAL
+# ============================================================
+
+st.write("")
+
+col_clin, col_op = st.columns(
+    [1.25, 0.75],
+    gap="large",
+)
 
 
-        df_clinica_counts = (
+# ------------------------------------------------------------
+# DISTRIBUIÇÃO CLÍNICA
+# ------------------------------------------------------------
 
-            df_pacientes[
-                "classificacao_clinica"
-            ]
+with col_clin:
 
+    st.markdown(
+        '<div class="overview-section-title">Panorama clínico</div>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        """
+        <div class="overview-section-subtitle">
+            Distribuição da situação clínica atual dos pacientes.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    if col_clinico:
+
+        clinica = (
+            df_atual[col_clinico]
+            .apply(formatar_categoria)
             .value_counts()
-
             .reset_index()
-
         )
 
-
-        df_clinica_counts.columns = [
-
+        clinica.columns = [
             "Classificação",
-
-            "Quantidade"
-
+            "Pacientes",
         ]
-
 
         fig_clinica = px.bar(
-
-            df_clinica_counts,
-
+            clinica,
             x="Classificação",
-
-            y="Quantidade",
-
-            text="Quantidade",
-
-            color_discrete_sequence=[
-                AZUL_PRINCIPAL
-            ]
-
+            y="Pacientes",
         )
-
 
         fig_clinica.update_traces(
-
+            marker_color="#4D8BC4",
+            marker_line_width=0,
+            text=clinica["Pacientes"],
             textposition="outside",
-
-            cliponaxis=False,
-
-            marker_line_width=0
-
-        )
-
-
-        fig_clinica = estilizar_grafico(
-
-            fig_clinica,
-
-            altura=350
-
-        )
-
-
-        st.plotly_chart(
-
-            fig_clinica,
-
-            use_container_width=True,
-
-            key="grafico_clinica_geral"
-
-        )
-
-
-    else:
-
-        st.warning(
-            "⚠️ Classificação clínica não disponível."
-        )
-
-
-# ============================================================
-# CLASSIFICAÇÃO LPP
-# ============================================================
-
-with col2:
-
-
-    st.subheader(
-        "🩹 Risco de Lesão por Pressão"
-    )
-
-
-    if "classificacao_lpp" in df_pacientes.columns:
-
-
-        df_lpp_counts = (
-
-            df_pacientes[
-                "classificacao_lpp"
-            ]
-
-            .value_counts()
-
-            .reset_index()
-
-        )
-
-
-        df_lpp_counts.columns = [
-
-            "Classificação",
-
-            "Quantidade"
-
-        ]
-
-
-        fig_lpp = px.bar(
-
-            df_lpp_counts,
-
-            x="Classificação",
-
-            y="Quantidade",
-
-            text="Quantidade",
-
-            color_discrete_sequence=[
-                AZUL_MEDIO
-            ]
-
-        )
-
-
-        fig_lpp.update_traces(
-
-            textposition="outside",
-
-            cliponaxis=False,
-
-            marker_line_width=0
-
-        )
-
-
-        fig_lpp = estilizar_grafico(
-
-            fig_lpp,
-
-            altura=350
-
-        )
-
-
-        st.plotly_chart(
-
-            fig_lpp,
-
-            use_container_width=True,
-
-            key="grafico_lpp_geral"
-
-        )
-
-
-    else:
-
-        st.warning(
-            "⚠️ Classificação de LPP não disponível."
-        )
-
-
-# ============================================================
-# DISTRIBUIÇÃO DA PRIORIDADE
-# ============================================================
-
-st.divider()
-
-
-st.header(
-    "🎯 Distribuição da Prioridade"
-)
-
-
-st.caption(
-    """
-    Classificação dos pacientes de acordo com
-    o índice de prioridade calculado.
-    """
-)
-
-
-if "classificacao_prioridade" in df_pacientes.columns:
-
-
-    df_prioridade_counts = (
-
-        df_pacientes[
-            "classificacao_prioridade"
-        ]
-
-        .value_counts()
-
-        .reset_index()
-
-    )
-
-
-    df_prioridade_counts.columns = [
-
-        "Prioridade",
-
-        "Quantidade"
-
-    ]
-
-
-    fig_prioridade = px.bar(
-
-        df_prioridade_counts,
-
-        x="Prioridade",
-
-        y="Quantidade",
-
-        text="Quantidade",
-
-        color_discrete_sequence=[
-            AZUL_PRINCIPAL
-        ]
-
-    )
-
-
-    fig_prioridade.update_traces(
-
-        textposition="outside",
-
-        cliponaxis=False,
-
-        marker_line_width=0
-
-    )
-
-
-    fig_prioridade = estilizar_grafico(
-
-        fig_prioridade,
-
-        altura=360
-
-    )
-
-
-    st.plotly_chart(
-
-        fig_prioridade,
-
-        use_container_width=True,
-
-        key="grafico_prioridade_geral"
-
-    )
-
-
-else:
-
-    st.warning(
-        "⚠️ Classificação de prioridade não disponível."
-    )
-
-
-# ============================================================
-# MOTIVOS DE INTERNAÇÃO / DIAGNÓSTICO INICIAL
-# ============================================================
-# Gráfico baseado na situação mais recente de cada paciente.
-# A coluna principal utilizada é "diagnostico_inicial".
-# ============================================================
-
-COLUNA_DIAGNOSTICO_INICIAL = "diagnostico_principal"
-
-st.divider()
-
-st.header(
-    "🏥 Motivos de Internação"
-)
-
-st.caption(
-    "Distribuição dos diagnósticos iniciais dos pacientes, considerando o último registro disponível de cada paciente."
-)
-
-if COLUNA_DIAGNOSTICO_INICIAL in df_pacientes.columns:
-
-    df_motivos = (
-        df_pacientes[
-            COLUNA_DIAGNOSTICO_INICIAL
-        ]
-        .dropna()
-        .astype(str)
-        .str.strip()
-    )
-
-    df_motivos = df_motivos[
-        df_motivos != ""
-    ]
-
-    if not df_motivos.empty:
-
-        df_motivos = (
-            df_motivos
-            .value_counts()
-            .reset_index()
-        )
-
-        df_motivos.columns = [
-            "Diagnóstico Inicial",
-            "Quantidade"
-        ]
-
-        total_motivos = df_motivos["Quantidade"].sum()
-
-        df_motivos["Porcentagem"] = (
-            df_motivos["Quantidade"]
-            / total_motivos
-            * 100
-        ).round(1)
-
-        df_motivos["Rótulo"] = (
-            df_motivos["Quantidade"].astype(str)
-            + " ("
-            + df_motivos["Porcentagem"].map(
-                lambda valor: f"{valor:.1f}%".replace(".", ",")
-            )
-            + ")"
-        )
-
-        # Ordenação crescente para que o maior valor fique no topo
-        df_motivos = (
-            df_motivos
-            .sort_values(
-                "Quantidade",
-                ascending=True
-            )
-        )
-
-        # Paleta azul mais sofisticada e com melhor contraste visual
-        cores_motivos = [
-            "#0F3D5E",
-            "#145DA0",
-            "#1E81B0",
-            "#2E8BC0",
-            "#4DA8DA",
-            "#7CC4E4",
-            "#A9D6E5"
-        ]
-
-        cores_barras = [
-            cores_motivos[i % len(cores_motivos)]
-            for i in range(len(df_motivos))
-        ]
-
-        fig_motivos = px.bar(
-            df_motivos,
-            x="Quantidade",
-            y="Diagnóstico Inicial",
-            orientation="h",
-            text="Rótulo",
-            custom_data=["Porcentagem"]
-        )
-
-        fig_motivos.update_traces(
-            textposition="outside",
-            cliponaxis=False,
-            marker_color=cores_barras,
-            marker_line_color="#FFFFFF",
-            marker_line_width=1.2,
             hovertemplate=(
-                "<b>%{y}</b><br>"
-                "Pacientes: %{x}<br>"
-                "Percentual: %{customdata[0]:.1f}%"
+                "<b>%{x}</b>"
+                "<br>%{y} paciente(s)"
                 "<extra></extra>"
-            )
+            ),
         )
 
-        fig_motivos.update_layout(
-            paper_bgcolor="#FFFFFF",
-            plot_bgcolor="#FFFFFF",
-            height=max(
-                380,
-                len(df_motivos) * 58
-            ),
-            margin=dict(
-                l=20,
-                r=100,
-                t=20,
-                b=40
-            ),
+        fig_clinica.update_layout(
             showlegend=False,
-            font=dict(
-                family="Arial",
-                color="#374151"
-            )
+            xaxis_title="",
+            yaxis_title="Pacientes",
         )
 
-        fig_motivos.update_xaxes(
-            showgrid=True,
-            gridcolor="#E8EEF5",
+        fig_clinica.update_yaxes(
+            gridcolor="#E7EEF3",
             zeroline=False,
-            title="Quantidade de pacientes"
+            dtick=1,
         )
 
-        fig_motivos.update_yaxes(
+        fig_clinica.update_xaxes(
             showgrid=False,
-            title=None
+        )
+
+        tema_plotly(
+            fig_clinica,
+            altura=340,
         )
 
         st.plotly_chart(
-            fig_motivos,
+            fig_clinica,
             use_container_width=True,
-            key="grafico_motivos_internacao"
-        )
-
-        st.caption(
-            "💡 Os rótulos mostram **quantidade de pacientes (percentual do total)**."
+            config={"displayModeBar": False},
         )
 
     else:
-
-        st.warning(
-            "⚠️ Não há valores válidos em 'diagnostico_inicial'."
+        st.info(
+            "A classificação clínica não está disponível na base processada."
         )
 
-else:
 
-    st.warning(
-        "⚠️ A coluna 'diagnostico_inicial' não foi encontrada na base de dados."
+# ------------------------------------------------------------
+# RESUMO OPERACIONAL
+# ------------------------------------------------------------
+
+with col_op:
+
+    st.markdown(
+        '<div class="overview-section-title">Resumo operacional</div>',
+        unsafe_allow_html=True,
     )
 
+    st.markdown(
+        """
+        <div class="overview-section-subtitle">
+            Indicadores essenciais de capacidade assistencial.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-# ============================================================
-# SITUAÇÃO ATUAL DOS PACIENTES
-# ============================================================
+    if not df_op.empty:
 
-st.divider()
-
-
-st.header(
-    "🚨 Situação Atual dos Pacientes"
-)
-
-
-st.caption(
-    """
-    Último registro disponível de cada paciente,
-    ordenado por índice de prioridade.
-    """
-)
-
-
-# ============================================================
-# COLUNAS
-# ============================================================
-
-colunas_pacientes = [
-
-    "id_paciente",
-
-    "timestamp",
-
-    "score_clinico",
-
-    "classificacao_clinica",
-
-    "score_lpp",
-
-    "classificacao_lpp",
-
-    "quantidade_alertas",
-
-    "indice_prioridade",
-
-    "classificacao_prioridade"
-
-]
-
-
-colunas_validas = [
-
-    coluna
-
-    for coluna in colunas_pacientes
-
-    if coluna in df_pacientes.columns
-
-]
-
-
-# ============================================================
-# ORDENAÇÃO POR PRIORIDADE
-# ============================================================
-
-if (
-
-    not df_pacientes.empty
-
-    and
-
-    "indice_prioridade" in df_pacientes.columns
-
-):
-
-
-    df_exibicao = (
-
-        df_pacientes
-
-        .sort_values(
-
-            by="indice_prioridade",
-
-            ascending=False
-
+        ocup_texto = (
+            f"{ocupacao_atual:.1f}%"
+            if ocupacao_atual is not None
+            else "N/D"
         )
 
-        .copy()
-
-    )
-
-
-else:
-
-    df_exibicao = (
-
-        df_pacientes
-
-        .copy()
-
-    )
-
-
-# ============================================================
-# FORMATAÇÃO DO TIMESTAMP
-# ============================================================
-
-if "timestamp" in df_exibicao.columns:
-
-
-    df_exibicao["timestamp"] = (
-
-        df_exibicao[
-            "timestamp"
-        ]
-
-        .apply(
-            formatar_timestamp
+        leitos_texto = (
+            str(leitos_disponiveis)
+            if leitos_disponiveis is not None
+            else "N/D"
         )
 
-    )
+        equipe_texto = (
+            f"{pacientes_enfermeiro:.1f}"
+            if pacientes_enfermeiro is not None
+            else "N/D"
+        )
 
+        st.markdown(
+            f"""
+            <div class="overview-card">
+                <div class="overview-small-title">Ocupação atual</div>
+                <div class="overview-number">{ocup_texto}</div>
+                <div class="overview-status">
+                    Percentual de leitos operacionais ocupados
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-# ============================================================
-# EXIBIÇÃO
-# ============================================================
+        st.write("")
 
-if not df_exibicao.empty:
+        o1, o2 = st.columns(2)
 
-
-    st.dataframe(
-
-        df_exibicao[
-            colunas_validas
-        ],
-
-        use_container_width=True,
-
-        hide_index=True
-
-    )
-
-
-else:
-
-    st.warning(
-        "⚠️ Nenhum paciente encontrado."
-    )
-
-
-# ============================================================
-# HISTÓRICO TEMPORAL
-# ============================================================
-
-st.divider()
-
-
-st.header(
-    "🕒 Histórico de Registros"
-)
-
-
-st.caption(
-    """
-    Visualização completa dos registros temporais
-    após a aplicação dos filtros.
-    """
-)
-
-
-with st.expander(
-
-    "📋 Visualizar histórico completo filtrado",
-
-    expanded=False
-
-):
-
-
-    # ========================================================
-    # COLUNAS
-    # ========================================================
-
-    colunas_historico = [
-
-        "id_paciente",
-
-        "timestamp",
-
-        "score_clinico",
-
-        "classificacao_clinica",
-
-        "score_lpp",
-
-        "classificacao_lpp",
-
-        "quantidade_alertas",
-
-        "indice_prioridade",
-
-        "classificacao_prioridade"
-
-    ]
-
-
-    colunas_historico_validas = [
-
-        coluna
-
-        for coluna in colunas_historico
-
-        if coluna in df_filtrado.columns
-
-    ]
-
-
-    # ========================================================
-    # CÓPIA
-    # ========================================================
-
-    df_historico = (
-
-        df_filtrado
-
-        .copy()
-
-    )
-
-
-    # ========================================================
-    # ORDENAÇÃO
-    # ========================================================
-
-    if "timestamp" in df_historico.columns:
-
-
-        df_historico = (
-
-            df_historico
-
-            .sort_values(
-
-                "timestamp",
-
-                ascending=False
-
+        with o1:
+            st.markdown(
+                f"""
+                <div class="overview-card">
+                    <div class="overview-small-title">Leitos disponíveis</div>
+                    <div class="overview-number">{leitos_texto}</div>
+                    <div class="overview-status">no último período</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
 
-        )
-
-
-        # ====================================================
-        # FORMATAÇÃO
-        # ====================================================
-
-        df_historico["timestamp"] = (
-
-            df_historico[
-                "timestamp"
-            ]
-
-            .apply(
-                formatar_timestamp
+        with o2:
+            st.markdown(
+                f"""
+                <div class="overview-card">
+                    <div class="overview-small-title">Pac./enfermeiro</div>
+                    <div class="overview-number">{equipe_texto}</div>
+                    <div class="overview-status">carga assistencial</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
-
-        )
-
-
-    # ========================================================
-    # TABELA
-    # ========================================================
-
-    st.dataframe(
-
-        df_historico[
-            colunas_historico_validas
-        ],
-
-        use_container_width=True,
-
-        hide_index=True
-
-    )
-
-
-    st.caption(
-
-        f"Total de registros históricos: "
-
-        f"{len(df_historico):,}"
-
-        .replace(
-            ",",
-            "."
-        )
-
-    )
-
-
-# ============================================================
-# DIAGNÓSTICO TÉCNICO
-# ============================================================
-
-st.divider()
-
-
-with st.expander(
-
-    "🛠️ Status e Diagnóstico Técnico",
-
-    expanded=False
-
-):
-
-
-    # ========================================================
-    # ESTRUTURA
-    # ========================================================
-
-    st.subheader(
-        "📊 Estrutura dos dados"
-    )
-
-
-    st.write(
-
-        f"**Registros totais da base:** "
-
-        f"{len(df):,}"
-
-        .replace(
-            ",",
-            "."
-        )
-
-    )
-
-
-    st.write(
-
-        f"**Registros após filtros:** "
-
-        f"{len(df_filtrado):,}"
-
-        .replace(
-            ",",
-            "."
-        )
-
-    )
-
-
-    st.write(
-
-        f"**Pacientes únicos após filtros:** "
-
-        f"{len(df_pacientes):,}"
-
-        .replace(
-            ",",
-            "."
-        )
-
-    )
-
-
-    if len(df_pacientes) > 0:
-
-
-        media = (
-
-            len(df_filtrado)
-
-            /
-
-            len(df_pacientes)
-
-        )
-
-
-        st.write(
-
-            f"**Média de registros por paciente:** "
-
-            f"{media:.2f}"
-
-        )
-
-
-    # ========================================================
-    # TIMESTAMP
-    # ========================================================
-
-    st.subheader(
-        "🕒 Diagnóstico temporal"
-    )
-
-
-    st.success(
-        "✓ Timestamp processado priorizando o formato DD/MM/AAAA HH:MM"
-    )
-
-
-    if quantidade_timestamps_invalidos == 0:
-
-
-        st.success(
-            "✓ Nenhum timestamp inválido encontrado"
-        )
-
 
     else:
-
-
-        st.warning(
-
-            f"⚠️ Foram encontrados "
-
-            f"{quantidade_timestamps_invalidos} "
-
-            f"timestamps inválidos."
-
+        st.info(
+            "Base operacional não encontrada. "
+            "Os indicadores detalhados permanecem disponíveis "
+            "quando `data/UTI_operacional.csv` estiver presente."
         )
 
 
-    # ========================================================
-    # PERÍODO
-    # ========================================================
+# ============================================================
+# TENDÊNCIA AGREGADA + MOTIVOS DE INTERNAÇÃO
+# ============================================================
 
-    if "timestamp" in df.columns:
+st.write("")
+
+trend_col, diag_col = st.columns(
+    [1.18, 0.82],
+    gap="large",
+)
 
 
-        data_min = (
+# ------------------------------------------------------------
+# TENDÊNCIA CLÍNICA AGREGADA
+# ------------------------------------------------------------
 
+with trend_col:
+
+    st.markdown(
+        '<div class="overview-section-title">Tendência clínica da UTI</div>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        """
+        <div class="overview-section-subtitle">
+            Evolução agregada do score clínico ao longo do período.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    coluna_score_hist = detectar_coluna(
+        df,
+        [
+            "score_clinico",
+            "score_risco_clinico",
+        ],
+    )
+
+    if (
+        coluna_score_hist
+        and df["timestamp_dt"].notna().any()
+    ):
+
+        serie_hist = (
             df[
-                "timestamp"
+                [
+                    "timestamp_dt",
+                    coluna_score_hist,
+                ]
             ]
+            .copy()
+        )
 
-            .min()
+        serie_hist[coluna_score_hist] = pd.to_numeric(
+            serie_hist[coluna_score_hist],
+            errors="coerce",
+        )
 
+        serie_hist = (
+            serie_hist
+            .dropna()
+            .groupby("timestamp_dt", as_index=False)
+            .agg(
+                score_medio=(coluna_score_hist, "mean")
+            )
+            .sort_values("timestamp_dt")
+            .tail(72)
+        )
+
+        if not serie_hist.empty:
+
+            fig_trend = go.Figure()
+
+            fig_trend.add_trace(
+                go.Scatter(
+                    x=serie_hist["timestamp_dt"],
+                    y=serie_hist["score_medio"],
+                    mode="lines",
+                    line=dict(
+                        color="#2B84C5",
+                        width=3,
+                    ),
+                    fill="tozeroy",
+                    fillcolor="rgba(43,132,197,.08)",
+                    hovertemplate=(
+                        "<b>%{x|%d/%m %H:%M}</b>"
+                        "<br>Score clínico médio: %{y:.1f}"
+                        "<extra></extra>"
+                    ),
+                )
+            )
+
+            fig_trend.update_layout(
+                showlegend=False,
+                xaxis_title="Período",
+                yaxis_title="Score clínico médio",
+            )
+
+            fig_trend.update_yaxes(
+                gridcolor="#E7EEF3",
+                zeroline=False,
+            )
+
+            fig_trend.update_xaxes(
+                gridcolor="#F0F4F7",
+            )
+
+            tema_plotly(
+                fig_trend,
+                altura=345,
+            )
+
+            st.plotly_chart(
+                fig_trend,
+                use_container_width=True,
+                config={"displayModeBar": False},
+            )
+
+        else:
+            st.info(
+                "Não há registros suficientes para gerar a tendência clínica."
+            )
+
+    else:
+        st.info(
+            "Score clínico temporal não disponível."
         )
 
 
-        data_max = (
+# ------------------------------------------------------------
+# MOTIVOS DE INTERNAÇÃO
+# ------------------------------------------------------------
 
-            df[
-                "timestamp"
-            ]
+with diag_col:
 
-            .max()
+    st.markdown(
+        '<div class="overview-section-title">Motivos de internação</div>',
+        unsafe_allow_html=True,
+    )
 
+    st.markdown(
+        """
+        <div class="overview-section-subtitle">
+            Principais diagnósticos dos pacientes atualmente monitorados.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    if "diagnostico_principal" in df_atual.columns:
+
+        diagnosticos = (
+            df_atual["diagnostico_principal"]
+            .apply(formatar_categoria)
+            .value_counts()
+            .head(6)
+            .sort_values(ascending=True)
+            .reset_index()
         )
 
-
-        st.write(
-
-            f"**Período total da base:** "
-
-            f"{formatar_timestamp(data_min)} "
-
-            f"até "
-
-            f"{formatar_timestamp(data_max)}"
-
-        )
-
-
-    # ========================================================
-    # TIPO DO TIMESTAMP
-    # ========================================================
-
-    st.subheader(
-        "🔬 Tipo da coluna timestamp"
-    )
-
-
-    st.code(
-
-        str(
-            df[
-                "timestamp"
-            ].dtype
-        )
-
-    )
-
-
-    # ========================================================
-    # COLUNAS
-    # ========================================================
-
-    st.subheader(
-        "📋 Colunas disponíveis"
-    )
-
-
-    st.write(
-        list(df.columns)
-    )
-
-
-    # ========================================================
-    # AMOSTRA TEMPORAL
-    # ========================================================
-
-    st.subheader(
-        "🧪 Amostra dos registros temporais"
-    )
-
-
-    colunas_diagnostico = [
-
-        "id_paciente",
-
-        "timestamp_original",
-
-        "timestamp"
-
-    ]
-
-
-    colunas_diagnostico = [
-
-        coluna
-
-        for coluna in colunas_diagnostico
-
-        if coluna in df.columns
-
-    ]
-
-
-    st.dataframe(
-
-        df[
-            colunas_diagnostico
+        diagnosticos.columns = [
+            "Diagnóstico",
+            "Pacientes",
         ]
 
-        .head(15),
+        fig_diag = px.bar(
+            diagnosticos,
+            x="Pacientes",
+            y="Diagnóstico",
+            orientation="h",
+        )
 
+        fig_diag.update_traces(
+            marker_color="#7C91C9",
+            marker_line_width=0,
+            text=diagnosticos["Pacientes"],
+            textposition="outside",
+            hovertemplate=(
+                "<b>%{y}</b>"
+                "<br>%{x} paciente(s)"
+                "<extra></extra>"
+            ),
+        )
+
+        fig_diag.update_layout(
+            showlegend=False,
+            xaxis_title="Pacientes",
+            yaxis_title="",
+        )
+
+        fig_diag.update_xaxes(
+            gridcolor="#E7EEF3",
+            zeroline=False,
+            dtick=1,
+        )
+
+        fig_diag.update_yaxes(
+            showgrid=False,
+        )
+
+        tema_plotly(
+            fig_diag,
+            altura=345,
+        )
+
+        st.plotly_chart(
+            fig_diag,
+            use_container_width=True,
+            config={"displayModeBar": False},
+        )
+
+    else:
+        st.info(
+            "Diagnóstico principal não disponível."
+        )
+
+
+# ============================================================
+# PACIENTES QUE EXIGEM ATENÇÃO
+# ============================================================
+
+st.write("")
+
+st.markdown(
+    '<div class="overview-section-title">Pacientes que exigem atenção</div>',
+    unsafe_allow_html=True,
+)
+
+st.markdown(
+    """
+    <div class="overview-section-subtitle">
+        Os cinco pacientes com maior prioridade global no registro atual.
+        O detalhamento completo permanece na Central de Alertas.
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+df_rank = df_atual.copy()
+
+if "indice_prioridade" in df_rank.columns:
+    df_rank["_ordem"] = pd.to_numeric(
+        df_rank["indice_prioridade"],
+        errors="coerce",
+    ).fillna(0)
+
+elif col_score_clinico:
+    df_rank["_ordem"] = pd.to_numeric(
+        df_rank[col_score_clinico],
+        errors="coerce",
+    ).fillna(0)
+
+else:
+    df_rank["_ordem"] = 0
+
+
+top5 = (
+    df_rank
+    .sort_values(
+        "_ordem",
+        ascending=False,
+    )
+    .head(5)
+    .copy()
+)
+
+
+tabela = pd.DataFrame()
+
+if "id_paciente" in top5.columns:
+    tabela["Paciente"] = (
+        "P"
+        + pd.to_numeric(
+            top5["id_paciente"],
+            errors="coerce",
+        )
+        .fillna(0)
+        .astype(int)
+        .astype(str)
+        .str.zfill(2)
+    )
+
+if col_clinico:
+    tabela["Situação clínica"] = (
+        top5[col_clinico]
+        .apply(formatar_categoria)
+        .values
+    )
+
+if col_lpp:
+    tabela["Risco LPP"] = (
+        top5[col_lpp]
+        .apply(formatar_categoria)
+        .values
+    )
+
+if "quantidade_alertas" in top5.columns:
+    tabela["Alertas"] = (
+        pd.to_numeric(
+            top5["quantidade_alertas"],
+            errors="coerce",
+        )
+        .fillna(0)
+        .astype(int)
+        .values
+    )
+
+if col_prioridade:
+    tabela["Prioridade"] = (
+        top5[col_prioridade]
+        .apply(formatar_categoria)
+        .values
+    )
+elif "indice_prioridade" in top5.columns:
+    tabela["Índice de prioridade"] = (
+        pd.to_numeric(
+            top5["indice_prioridade"],
+            errors="coerce",
+        )
+        .round(1)
+        .values
+    )
+
+if not tabela.empty:
+    st.dataframe(
+        tabela,
         use_container_width=True,
-
-        hide_index=True
-
+        hide_index=True,
+        height=235,
+    )
+else:
+    st.info(
+        "Não há informações suficientes para montar a priorização."
     )
 
 
 # ============================================================
-# AVISO ACADÊMICO
+# ATALHOS ANALÍTICOS
 # ============================================================
 
-st.divider()
+st.write("")
+
+a1, a2, a3 = st.columns(3)
+
+with a1:
+    st.page_link(
+        "pages/2_Monitoramento_Clinico.py",
+        label="Analisar paciente individual",
+        use_container_width=True,
+    )
+
+with a2:
+    st.page_link(
+        "pages/5_Central_de_Alertas.py",
+        label="Abrir Central de Alertas",
+        use_container_width=True,
+    )
+
+with a3:
+    st.page_link(
+        "pages/4_Gestao_Operacional.py",
+        label="Ver Gestão Operacional",
+        use_container_width=True,
+    )
 
 
-st.info(
+# ============================================================
+# CONTEXTO
+# ============================================================
 
+st.markdown(
     """
-    ⚠️ **Protótipo acadêmico**
+    <div class="overview-insight">
+        <b>Leitura da página:</b> esta visão foi intencionalmente
+        simplificada para apresentar apenas o panorama da UTI.
+        Risco de LPP, alertas, monitoramento individual e desempenho
+        operacional possuem páginas próprias para análise detalhada.
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
-    Os dados apresentados nesta página são totalmente simulados
-    e possuem finalidade exclusivamente educacional e conceitual.
-
-    Os indicadores, scores, alertas e classificações apresentados
-    não constituem um sistema clínico validado e não devem ser
-    utilizados para tomada de decisão clínica real.
-    """
-
+st.caption(
+    "Protótipo acadêmico com dados simulados. "
+    "Os indicadores apresentados possuem finalidade conceitual "
+    "e não substituem avaliação clínica ou protocolos institucionais."
 )
