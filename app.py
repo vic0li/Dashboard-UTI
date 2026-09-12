@@ -2,18 +2,20 @@
 # APP PRINCIPAL
 # UTI INTELLIGENT CARE
 #
-# Protótipo acadêmico para monitoramento inteligente
-# de risco clínico e operacional em UTI
+# Home / landing page do protótipo acadêmico.
+# A análise detalhada fica distribuída nas páginas especializadas.
 # ============================================================
 
-import streamlit as st
+from pathlib import Path
+
 import pandas as pd
-import plotly.express as px
+import streamlit as st
 
 from utils.data_loader import load_data
 from utils.analytics import processar_dados
 from utils.risk_engine import processar_riscos
-from utils.styling import aplicar_estilo
+from utils.styling import aplicar_estilo, topo_produto, navegacao_topo, hero_home
+
 
 # ============================================================
 # CONFIGURAÇÃO DA PÁGINA
@@ -23,41 +25,166 @@ st.set_page_config(
     page_title="UTI Intelligent Care",
     page_icon="",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed",
 )
 
+
 # ============================================================
-# ESTILO
+# ESTILO E NAVEGAÇÃO
 # ============================================================
 
 aplicar_estilo()
+topo_produto()
+navegacao_topo("Início")
+hero_home()
+
 
 # ============================================================
-# CARREGAMENTO DOS DADOS
+# CSS EXCLUSIVO DA HOME
+# ============================================================
+
+st.markdown(
+    """
+    <style>
+    .home-section-title {
+        color:#0D2A45;
+        font-size:27px;
+        font-weight:850;
+        letter-spacing:-0.02em;
+        margin:12px 0 4px 0;
+    }
+
+    .home-section-subtitle {
+        color:#6F8798;
+        font-size:16px;
+        line-height:1.5;
+        margin-bottom:15px;
+    }
+
+    .home-summary-card {
+        background:#FFFFFF;
+        border:1px solid #D8E4EC;
+        border-radius:16px;
+        padding:20px 22px;
+        min-height:150px;
+        box-shadow:0 5px 18px rgba(21,61,89,.045);
+    }
+
+    .home-summary-kicker {
+        color:#6F8798;
+        font-size:14px;
+        font-weight:750;
+        text-transform:uppercase;
+        letter-spacing:.05em;
+        margin-bottom:8px;
+    }
+
+    .home-summary-title {
+        color:#0D2A45;
+        font-size:21px;
+        font-weight:850;
+        margin-bottom:8px;
+    }
+
+    .home-summary-text {
+        color:#587287;
+        font-size:15px;
+        line-height:1.55;
+    }
+
+    .home-status-row {
+        display:flex;
+        align-items:center;
+        gap:10px;
+        margin-top:13px;
+        color:#49677C;
+        font-size:14px;
+        font-weight:650;
+    }
+
+    .home-dot {
+        width:10px;
+        height:10px;
+        border-radius:50%;
+        display:inline-block;
+        flex-shrink:0;
+    }
+
+    .home-dot-green { background:#159A7A; }
+    .home-dot-orange { background:#F4A62A; }
+    .home-dot-red { background:#E5484D; }
+    .home-dot-blue { background:#1F6EA5; }
+
+    .home-area-card {
+        background:#FFFFFF;
+        border:1px solid #D8E4EC;
+        border-radius:16px;
+        padding:19px 20px 17px 20px;
+        min-height:142px;
+        box-shadow:0 4px 14px rgba(21,61,89,.035);
+        margin-bottom:8px;
+    }
+
+    .home-area-number {
+        color:#1F6EA5;
+        font-size:13px;
+        font-weight:800;
+        letter-spacing:.06em;
+        text-transform:uppercase;
+        margin-bottom:7px;
+    }
+
+    .home-area-title {
+        color:#0D2A45;
+        font-size:20px;
+        font-weight:850;
+        margin-bottom:7px;
+    }
+
+    .home-area-text {
+        color:#667F92;
+        font-size:14px;
+        line-height:1.5;
+    }
+
+    .home-about {
+        background:#F6FAFC;
+        border:1px solid #DCE8EF;
+        border-radius:15px;
+        padding:17px 20px;
+        color:#567186;
+        font-size:15px;
+        line-height:1.55;
+        margin-top:8px;
+    }
+
+    .home-about strong {
+        color:#173E59;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+# ============================================================
+# CARREGAMENTO DOS DADOS CLÍNICOS
 # ============================================================
 
 try:
-    df = load_data()
+    df = load_data().copy()
 except Exception as e:
-    st.error("❌ Não foi possível carregar os dados.")
+    st.error("Não foi possível carregar os dados clínicos.")
     st.exception(e)
     st.stop()
 
-# ============================================================
-# VALIDAÇÃO DA BASE
-# ============================================================
-
 if df.empty:
     st.error(
-        """
-        ❌ Não foi possível carregar os dados da UTI.
-
-        Verifique se o arquivo:
-        `data/uti_simulada.csv`
-        está corretamente localizado.
-        """
+        "A base clínica está vazia. Verifique o arquivo "
+        "`data/uti_simulada.csv`."
     )
     st.stop()
+
 
 # ============================================================
 # PROCESSAMENTO ANALÍTICO
@@ -65,401 +192,582 @@ if df.empty:
 
 try:
     df = processar_dados(df)
-except Exception as e:
-    st.error("❌ Erro no processamento dos dados.")
-    st.exception(e)
-    st.stop()
-
-# ============================================================
-# MOTOR DE RISCO
-# ============================================================
+except Exception:
+    # A Home continua funcional mesmo se parte das variáveis
+    # derivadas não puder ser processada.
+    pass
 
 try:
     df = processar_riscos(df)
-except Exception as e:
-    st.error("❌ Erro no motor de risco.")
-    st.exception(e)
-    st.stop()
+except Exception:
+    pass
+
 
 # ============================================================
-# PREPARAÇÃO TEMPORAL DOS DADOS
+# PREPARAÇÃO TEMPORAL
 # ============================================================
 
 if "timestamp" in df.columns:
-    df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
+    df["timestamp_dt"] = pd.to_datetime(
+        df["timestamp"],
+        errors="coerce",
+        dayfirst=True,
+    )
+else:
+    df["timestamp_dt"] = pd.NaT
 
-# ============================================================
-# DATAFRAME DE PACIENTES ATUAIS
-# ============================================================
 
-if "id_paciente" in df.columns and "timestamp" in df.columns:
+if (
+    "id_paciente" in df.columns
+    and df["timestamp_dt"].notna().any()
+):
     df_pacientes = (
-        df.sort_values("timestamp")
+        df
+        .dropna(subset=["timestamp_dt"])
+        .sort_values("timestamp_dt")
         .groupby("id_paciente", as_index=False)
         .tail(1)
         .copy()
     )
 elif "id_paciente" in df.columns:
-    df_pacientes = df.drop_duplicates(subset="id_paciente", keep="last").copy()
+    df_pacientes = (
+        df
+        .drop_duplicates(
+            subset="id_paciente",
+            keep="last",
+        )
+        .copy()
+    )
 else:
     df_pacientes = df.copy()
 
-# ============================================================
-# HEADER / HERO SECTION (Layout refinado)
-# ============================================================
-
-st.title("Dashboard Inteligente para Gestão da UTI")
-st.caption("🛡️ Monitoramento Preditivo e Inteligência Operacional")
-
-st.markdown(
-    """
-    <div style="background-color: #f0f2f6; padding: 16px; border-radius: 8px; border-left: 5px solid #1f77b4; margin-bottom: 20px;">
-        <p style="margin: 0; font-size: 15px; color: #31333F;">
-            <b>Visão Geral do Sistema:</b> Protótipo de dashboard preditivo para gestão de risco clínico e operacional em Unidade de Terapia Intensiva, integrando dados simulados e princípios de <i>Lean Healthcare</i>.
-        </p>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
 
 # ============================================================
-# PILARES DO SISTEMA
+# BASE OPERACIONAL - OPCIONAL NA HOME
 # ============================================================
 
-col1, col2, col3 = st.columns(3)
+def carregar_ocupacao_operacional():
+    raiz = Path(__file__).resolve().parent
 
-with col1:
-    st.info("🧠 **Risco de LPP**\n\nEscore ponderado para prevenção de lesão por pressão.")
+    candidatos = [
+        raiz / "data" / "UTI_operacional.csv",
+        raiz / "data" / "uti_operacional.csv",
+    ]
 
-with col2:
-    st.info("📈 **Tendência Clínica**\n\nMonitoramento de deterioração precoce e escores.")
+    for caminho in candidatos:
+        if caminho.exists():
+            try:
+                op = pd.read_csv(
+                    caminho,
+                    sep=";",
+                    encoding="utf-8-sig",
+                )
 
-with col3:
-    st.info("🏥 **Gestão Operacional**\n\nIntegração entre risco, pacientes e eficiência.")
+                if op.empty:
+                    return None
 
-st.markdown("---")
+                if "timestamp" in op.columns:
+                    op["_timestamp"] = pd.to_datetime(
+                        op["timestamp"],
+                        errors="coerce",
+                        dayfirst=True,
+                    )
+                    op = op.sort_values("_timestamp")
+
+                if "taxa_ocupacao_pct" in op.columns:
+                    valor = pd.to_numeric(
+                        op.iloc[-1]["taxa_ocupacao_pct"],
+                        errors="coerce",
+                    )
+
+                    if pd.notna(valor):
+                        return float(valor)
+
+            except Exception:
+                return None
+
+    return None
+
+
+ocupacao_atual = carregar_ocupacao_operacional()
+
 
 # ============================================================
-# VISÃO GERAL & MÉTRICAS
+# INDICADORES DA HOME
 # ============================================================
-
-st.subheader("📊 Indicadores Atuais da UTI")
-st.caption("Os indicadores abaixo representam a situação mais recente disponível de cada paciente monitorado.")
 
 total_pacientes = (
-    df_pacientes["id_paciente"].nunique()
+    int(df_pacientes["id_paciente"].nunique())
     if "id_paciente" in df_pacientes.columns
     else len(df_pacientes)
 )
 
-total_alertas_val = int(df_pacientes["quantidade_alertas"].sum()) if "quantidade_alertas" in df_pacientes.columns else 0
-spo2_media = f"{df_pacientes['saturacao_O2'].mean():.1f}%" if "saturacao_O2" in df_pacientes.columns else "N/D"
-fc_media = f"{df_pacientes['frequencia_cardiaca'].mean():.1f}" if "frequencia_cardiaca" in df_pacientes.columns else "N/D"
-temp_media = f"{df_pacientes['temperatura'].mean():.1f}°C" if "temperatura" in df_pacientes.columns else "N/D"
 
-m1, m2, m3, m4, m5 = st.columns(5)
+if "quantidade_alertas" in df_pacientes.columns:
+    alertas_ativos = int(
+        pd.to_numeric(
+            df_pacientes["quantidade_alertas"],
+            errors="coerce",
+        )
+        .fillna(0)
+        .sum()
+    )
+else:
+    colunas_alerta = [
+        coluna
+        for coluna in [
+            "alerta_fc",
+            "alerta_spo2",
+            "alerta_temp",
+            "alerta_lactato",
+            "alerta_hemodinamico",
+            "alerta_renal",
+        ]
+        if coluna in df_pacientes.columns
+    ]
+
+    alertas_ativos = 0
+
+    for coluna in colunas_alerta:
+        serie = (
+            df_pacientes[coluna]
+            .astype(str)
+            .str.strip()
+            .str.lower()
+        )
+
+        alertas_ativos += int(
+            serie.isin(
+                [
+                    "1",
+                    "true",
+                    "sim",
+                    "yes",
+                    "alerta",
+                    "ativo",
+                ]
+            ).sum()
+        )
+
+
+# Prioridade elevada
+prioritarios = None
+
+for coluna in [
+    "classificacao_prioridade",
+    "nivel_risco_clinico",
+]:
+    if coluna in df_pacientes.columns:
+        serie = (
+            df_pacientes[coluna]
+            .astype(str)
+            .str.strip()
+            .str.lower()
+            .str.replace(" ", "_")
+        )
+
+        prioritarios = int(
+            serie.isin(
+                [
+                    "alta",
+                    "alto",
+                    "muito_alto",
+                    "muito_alta",
+                    "critico",
+                    "crítico",
+                    "critica",
+                    "crítica",
+                ]
+            ).sum()
+        )
+        break
+
+if prioritarios is None:
+    prioritarios = 0
+
+
+# Risco de LPP elevado
+lpp_elevado = 0
+
+for coluna in [
+    "nivel_risco_LPP",
+    "classificacao_lpp",
+]:
+    if coluna in df_pacientes.columns:
+        serie = (
+            df_pacientes[coluna]
+            .astype(str)
+            .str.strip()
+            .str.lower()
+            .str.replace(" ", "_")
+        )
+
+        lpp_elevado = int(
+            serie.isin(
+                [
+                    "alto",
+                    "muito_alto",
+                ]
+            ).sum()
+        )
+        break
+
+
+# ============================================================
+# VISÃO RÁPIDA
+# ============================================================
+
+st.markdown(
+    '<div class="home-section-title">Visão rápida da UTI</div>',
+    unsafe_allow_html=True,
+)
+
+st.markdown(
+    """
+    <div class="home-section-subtitle">
+        Indicadores essenciais do registro mais recente. As análises
+        completas estão disponíveis nas páginas especializadas.
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+m1, m2, m3, m4 = st.columns(4)
+
 with m1:
-    st.metric("👥 Pacientes", total_pacientes)
+    st.metric(
+        "Pacientes monitorados",
+        total_pacientes,
+    )
+
 with m2:
-    st.metric("⚠️ Alertas Atuais", total_alertas_val)
+    st.metric(
+        "Alertas ativos",
+        alertas_ativos,
+    )
+
 with m3:
-    st.metric("⭕ SpO₂ Média", spo2_media)
+    st.metric(
+        "Alta prioridade",
+        prioritarios,
+    )
+
 with m4:
-    st.metric("💓 FC Média", fc_media)
-with m5:
-    st.metric("🌡️ Temp. Média", temp_media)
+    st.metric(
+        "Ocupação da UTI",
+        (
+            f"{ocupacao_atual:.1f}%"
+            if ocupacao_atual is not None
+            else "N/D"
+        ),
+        help=(
+            "Indicador proveniente da base operacional simulada."
+            if ocupacao_atual is not None
+            else "A base operacional não foi encontrada."
+        ),
+    )
+
 
 # ============================================================
-# MOTOR ANALÍTICO
+# RESUMO DO ESTADO ATUAL
 # ============================================================
 
-st.markdown("---")
-st.header("🧠 Motor Analítico")
-st.caption("Scores médios calculados utilizando o último registro disponível de cada paciente.")
+st.write("")
 
-c1, c2, c3, c4 = st.columns(4)
+st.markdown(
+    '<div class="home-section-title">Estado atual</div>',
+    unsafe_allow_html=True,
+)
+
+st.markdown(
+    """
+    <div class="home-section-subtitle">
+        Leitura resumida das três dimensões principais do protótipo.
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+c1, c2, c3 = st.columns(3, gap="large")
+
+
+# ------------------------------------------------------------
+# CLÍNICO
+# ------------------------------------------------------------
 
 with c1:
-    score_clinico_medio = df_pacientes["score_clinico"].mean() if "score_clinico" in df_pacientes.columns else 0
-    st.metric("Score Clínico Médio", f"{score_clinico_medio:.1f}")
+
+    if prioritarios > 0:
+        classe_dot = "home-dot-orange"
+        status_clinico = (
+            f"{prioritarios} paciente(s) em prioridade elevada"
+        )
+    else:
+        classe_dot = "home-dot-green"
+        status_clinico = "Sem prioridade elevada identificada"
+
+    st.markdown(
+        f"""
+        <div class="home-summary-card">
+            <div class="home-summary-kicker">Clínico</div>
+            <div class="home-summary-title">Monitoramento assistencial</div>
+            <div class="home-summary-text">
+                Acompanhe sinais vitais, exames laboratoriais,
+                score clínico e tendências individuais dos pacientes.
+            </div>
+            <div class="home-status-row">
+                <span class="home-dot {classe_dot}"></span>
+                {status_clinico}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+# ------------------------------------------------------------
+# LPP
+# ------------------------------------------------------------
 
 with c2:
-    score_lpp_medio = df_pacientes["score_lpp"].mean() if "score_lpp" in df_pacientes.columns else 0
-    st.metric("Score LPP Médio", f"{score_lpp_medio:.1f}")
+
+    if lpp_elevado > 0:
+        classe_dot = "home-dot-orange"
+        status_lpp = (
+            f"{lpp_elevado} paciente(s) com risco alto ou muito alto"
+        )
+    else:
+        classe_dot = "home-dot-green"
+        status_lpp = "Sem pacientes em risco elevado"
+
+    st.markdown(
+        f"""
+        <div class="home-summary-card">
+            <div class="home-summary-kicker">Prevenção</div>
+            <div class="home-summary-title">Risco de LPP</div>
+            <div class="home-summary-text">
+                Priorize pacientes com maior risco, tempo prolongado
+                na posição e fatores preventivos relevantes.
+            </div>
+            <div class="home-status-row">
+                <span class="home-dot {classe_dot}"></span>
+                {status_lpp}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+# ------------------------------------------------------------
+# OPERACIONAL
+# ------------------------------------------------------------
 
 with c3:
-    st.metric("Alertas Atuais", total_alertas_val)
 
-with c4:
-    prioridade_media = df_pacientes["indice_prioridade"].mean() if "indice_prioridade" in df_pacientes.columns else 0
-    st.metric("Prioridade Média", f"{prioridade_media:.1f}")
-
-# ============================================================
-# SEÇÃO DE MOTIVO DE INTERNAÇÃO (DIAGNÓSTICO PRINCIPAL)
-# ============================================================
-
-st.markdown("---")
-st.header(" Motivo de Internação")
-st.caption("Distribuição dos principais motivos e diagnósticos que motivaram a admissão dos pacientes na UTI.")
-
-col_diag1, col_diag2 = st.columns([1.2, 1])
-
-with col_diag1:
-    if "diagnostico_principal" in df_pacientes.columns:
-        df_diag = df_pacientes["diagnostico_principal"].value_counts().reset_index()
-        df_diag.columns = ["Diagnóstico / Motivo", "Total de Pacientes"]
-        st.dataframe(df_diag, use_container_width=True, hide_index=True)
-    elif "diagnostico_principal" in df.columns:
-        df_diag = df.drop_duplicates(subset="id_paciente", keep="last")["diagnostico_principal"].value_counts().reset_index()
-        df_diag.columns = ["Diagnóstico / Motivo", "Total de Pacientes"]
-        st.dataframe(df_diag, use_container_width=True, hide_index=True)
+    if ocupacao_atual is None:
+        classe_dot = "home-dot-blue"
+        status_op = "Indicador operacional indisponível"
+    elif ocupacao_atual >= 90:
+        classe_dot = "home-dot-red"
+        status_op = f"Ocupação elevada: {ocupacao_atual:.1f}%"
     else:
-        st.warning("⚠️ Coluna `diagnostico_principal` não encontrada na base de dados.")
+        classe_dot = "home-dot-green"
+        status_op = f"Ocupação atual: {ocupacao_atual:.1f}%"
 
-with col_diag2:
-    if "diagnostico_principal" in df_pacientes.columns:
-        fig_diag = px.pie(
-            df_pacientes, 
-            names="diagnostico_principal", 
-            title="Proporção por Motivo de Internação",
-            hole=0.4
-        )
-        fig_diag.update_layout(height=350, margin=dict(t=30, b=10, l=10, r=10))
-        st.plotly_chart(fig_diag, use_container_width=True)
-    else:
-        st.info("Gráfico indisponível sem a coluna de diagnóstico.")
-
-# ============================================================
-# ETAPA 7.6 - VALIDAÇÃO DO MOTOR ANALÍTICO
-# ============================================================
-
-st.markdown("---")
-st.header(" Validação do Motor Analítico")
-st.write(
-    """
-    Esta seção verifica se as variáveis derivadas foram criadas
-    corretamente e permite validar o comportamento dos scores,
-    classificações, alertas e índices de prioridade.
-    """
-)
-
-# 1. VERIFICAÇÃO DAS VARIÁVEIS
-st.subheader(" Verificação das Variáveis Geradas")
-
-colunas_motor = [
-    "score_clinico",
-    "classificacao_clinica",
-    "score_lpp",
-    "classificacao_lpp",
-    "quantidade_alertas",
-    "indice_prioridade",
-    "classificacao_prioridade",
-    "diagnostico_principal"
-]
-
-colunas_encontradas = 0
-for coluna in colunas_motor:
-    if coluna in df.columns:
-        st.success(f"✅ `{coluna}` criada/presente com sucesso")
-        colunas_encontradas += 1
-    else:
-        st.warning(f"⚠️ `{coluna}` não encontrada")
-
-# 2. ESTATÍSTICAS DOS SCORES
-st.markdown("---")
-st.subheader(" Estatísticas dos Scores")
-st.caption("Estatísticas calculadas sobre a situação atual de cada paciente.")
-
-s1, s2, s3 = st.columns(3)
-
-with s1:
-    st.markdown("#####  Score Clínico")
-    if "score_clinico" in df_pacientes.columns:
-        st.metric("Mínimo", f"{df_pacientes['score_clinico'].min():.1f}")
-        st.metric("Máximo", f"{df_pacientes['score_clinico'].max():.1f}")
-        st.metric("Média", f"{df_pacientes['score_clinico'].mean():.1f}")
-    else:
-        st.warning("N/D")
-
-with s2:
-    st.markdown("#####  Score LPP")
-    if "score_lpp" in df_pacientes.columns:
-        st.metric("Mínimo", f"{df_pacientes['score_lpp'].min():.1f}")
-        st.metric("Máximo", f"{df_pacientes['score_lpp'].max():.1f}")
-        st.metric("Média", f"{df_pacientes['score_lpp'].mean():.1f}")
-    else:
-        st.warning("N/D")
-
-with s3:
-    st.markdown("##### 🔥 Índice de Prioridade")
-    if "indice_prioridade" in df_pacientes.columns:
-        st.metric("Mínimo", f"{df_pacientes['indice_prioridade'].min():.1f}")
-        st.metric("Máximo", f"{df_pacientes['indice_prioridade'].max():.1f}")
-        st.metric("Média", f"{df_pacientes['indice_prioridade'].mean():.1f}")
-    else:
-        st.warning("N/D")
-
-# 3. DISTRIBUIÇÃO DAS CLASSIFICAÇÕES
-st.markdown("---")
-st.subheader(" Distribuição Atual dos Pacientes")
-st.caption("Cada paciente é contabilizado apenas uma vez, utilizando seu registro mais recente.")
-
-d1, d2, d3 = st.columns(3)
-
-with d1:
-    st.markdown("##### 🩺 Situação Clínica")
-    if "classificacao_clinica" in df_pacientes.columns:
-        dist_clinica = df_pacientes["classificacao_clinica"].value_counts().reset_index()
-        dist_clinica.columns = ["Classificação", "Pacientes"]
-        st.dataframe(dist_clinica, use_container_width=True, hide_index=True)
-    else:
-        st.warning("N/D")
-
-with d2:
-    st.markdown("##### 🩹 Risco de LPP")
-    if "classificacao_lpp" in df_pacientes.columns:
-        dist_lpp = df_pacientes["classificacao_lpp"].value_counts().reset_index()
-        dist_lpp.columns = ["Classificação", "Pacientes"]
-        st.dataframe(dist_lpp, use_container_width=True, hide_index=True)
-    else:
-        st.warning("N/D")
-
-with d3:
-    st.markdown("##### 🔥 Prioridade")
-    if "classificacao_prioridade" in df_pacientes.columns:
-        dist_prio = df_pacientes["classificacao_prioridade"].value_counts().reset_index()
-        dist_prio.columns = ["Classificação", "Pacientes"]
-        st.dataframe(dist_prio, use_container_width=True, hide_index=True)
-    else:
-        st.warning("N/D")
-
-# 4. VERIFICAÇÃO DE DADOS NULOS
-st.markdown("---")
-st.subheader(" Verificação de Dados Nulos")
-
-colunas_validacao = [
-    "score_clinico",
-    "score_lpp",
-    "quantidade_alertas",
-    "indice_prioridade",
-    "diagnostico_principal"
-]
-
-for coluna in colunas_validacao:
-    if coluna in df.columns:
-        qtd_nulos = df[coluna].isnull().sum()
-        if qtd_nulos == 0:
-            st.success(f"✅ `{coluna}`: nenhum valor nulo")
-        else:
-            st.warning(f"⚠️ `{coluna}`: {qtd_nulos} valores nulos")
-
-# 5. AUDITORIA DOS RESULTADOS
-st.markdown("---")
-st.subheader(" Auditoria dos Resultados")
-st.caption("Visualização dos dados de entrada e das variáveis geradas pelo motor analítico.")
-
-colunas_auditoria = [
-    "id_paciente", "timestamp", "diagnostico_principal",
-    "frequencia_cardiaca", "saturacao_O2", "temperatura", "lactato",
-    "score_clinico", "classificacao_clinica",
-    "score_lpp", "classificacao_lpp",
-    "quantidade_alertas",
-    "indice_prioridade", "classificacao_prioridade"
-]
-
-colunas_existentes = [coluna for coluna in colunas_auditoria if coluna in df_pacientes.columns]
-
-if colunas_existentes:
-    df_auditoria = df_pacientes[colunas_existentes].copy()
-    if "indice_prioridade" in df_auditoria.columns:
-        df_auditoria = df_auditoria.sort_values("indice_prioridade", ascending=False)
-    st.dataframe(df_auditoria.head(20), use_container_width=True, hide_index=True)
-else:
-    st.warning("Nenhuma coluna disponível para auditoria.")
-
-# 6. PACIENTES COM MAIOR PRIORIDADE
-st.markdown("---")
-st.subheader(" Pacientes com Maior Prioridade")
-st.caption("Cada paciente aparece apenas uma vez. A classificação considera o último registro disponível.")
-
-if "indice_prioridade" in df_pacientes.columns:
-    pacientes_prioritarios = df_pacientes.sort_values("indice_prioridade", ascending=False).head(10)
-    colunas_prioridade = [
-        "id_paciente", "timestamp", "diagnostico_principal",
-        "score_clinico", "classificacao_clinica",
-        "score_lpp", "classificacao_lpp",
-        "quantidade_alertas",
-        "indice_prioridade", "classificacao_prioridade"
-    ]
-    colunas_prioridade_existentes = [coluna for coluna in colunas_prioridade if coluna in pacientes_prioritarios.columns]
-    st.dataframe(pacientes_prioritarios[colunas_prioridade_existentes], use_container_width=True, hide_index=True)
-else:
-    st.warning("Índice de prioridade não disponível.")
-
-# 7. RELAÇÃO ENTRE SCORE CLÍNICO E SCORE LPP
-st.markdown("---")
-st.subheader(" Relação entre Risco Clínico e Risco de LPP")
-st.caption(
-    """
-    Cada ponto representa um paciente.
-    O registro utilizado corresponde ao estado mais recente.
-    O tamanho do marcador representa o índice de prioridade.
-    """
-)
-
-colunas_grafico = ["score_clinico", "score_lpp", "indice_prioridade"]
-grafico_disponivel = all(coluna in df_pacientes.columns for coluna in colunas_grafico)
-
-if grafico_disponivel:
-    hover_data = []
-    if "id_paciente" in df_pacientes.columns:
-        hover_data.append("id_paciente")
-    if "diagnostico_principal" in df_pacientes.columns:
-        hover_data.append("diagnostico_principal")
-    if "quantidade_alertas" in df_pacientes.columns:
-        hover_data.append("quantidade_alertas")
-
-    fig = px.scatter(
-        df_pacientes,
-        x="score_clinico",
-        y="score_lpp",
-        size="indice_prioridade",
-        color="diagnostico_principal" if "diagnostico_principal" in df_pacientes.columns else None,
-        hover_data=hover_data,
-        title="Relação entre Score Clínico, Score LPP e Prioridade"
+    st.markdown(
+        f"""
+        <div class="home-summary-card">
+            <div class="home-summary-kicker">Operacional</div>
+            <div class="home-summary-title">Capacidade e fluxo</div>
+            <div class="home-summary-text">
+                Visualize ocupação, permanência, carga assistencial,
+                disponibilidade de leitos e movimentação da UTI.
+            </div>
+            <div class="home-status-row">
+                <span class="home-dot {classe_dot}"></span>
+                {status_op}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
-    fig.update_layout(xaxis_title="Score Clínico", yaxis_title="Score LPP", height=500)
-    st.plotly_chart(fig, use_container_width=True)
-else:
-    st.warning("Gráfico indisponível.")
 
-# 8. RESUMO DA BASE & DADOS TÉCNICOS
-st.markdown("---")
-st.header("📊 Resumo da Base de Dados")
 
-r1, r2, r3, r4 = st.columns(4)
-with r1:
-    st.metric("Registros Temporais", f"{len(df):,}".replace(",", "."))
-with r2:
-    pacientes = df["id_paciente"].nunique() if "id_paciente" in df.columns else "N/D"
-    st.metric("Pacientes Únicos", pacientes)
-with r3:
-    st.metric("Variáveis", len(df.columns))
-with r4:
-    st.metric("Modelo", "Série Temporal")
+# ============================================================
+# ÁREAS DO SISTEMA
+# ============================================================
 
-# AVISO IMPORTANTE
-st.markdown("---")
-st.info(
-    """
-    ⚠️ **Aviso importante**
+st.write("")
 
-    Este sistema é um **protótipo acadêmico** desenvolvido com dados totalmente simulados.
-
-    Os scores, regras, classificações e alertas possuem finalidade exclusivamente **conceitual e educacional**.
-
-    Este protótipo não substitui avaliação profissional, protocolos institucionais ou sistemas clínicos validados.
-    """
+st.markdown(
+    '<div class="home-section-title">Áreas do sistema</div>',
+    unsafe_allow_html=True,
 )
 
-st.caption("TCC · Engenharia Biomédica · PUC-Campinas · 2026")
+st.markdown(
+    """
+    <div class="home-section-subtitle">
+        Cada página possui uma finalidade específica para evitar
+        sobreposição de informações.
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+a1, a2, a3 = st.columns(3, gap="large")
+
+with a1:
+    st.markdown(
+        """
+        <div class="home-area-card">
+            <div class="home-area-number">01 · Visão geral</div>
+            <div class="home-area-title">Panorama da UTI</div>
+            <div class="home-area-text">
+                Síntese executiva dos principais indicadores clínicos,
+                preventivos e operacionais.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.page_link(
+        "pages/1_Dashboard_Geral.py",
+        label="Abrir Visão geral",
+        use_container_width=True,
+    )
+
+with a2:
+    st.markdown(
+        """
+        <div class="home-area-card">
+            <div class="home-area-number">02 · Monitoramento</div>
+            <div class="home-area-title">Paciente individual</div>
+            <div class="home-area-text">
+                Evolução de sinais vitais, exames e tendências clínicas
+                do paciente selecionado.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.page_link(
+        "pages/2_Monitoramento_Clinico.py",
+        label="Abrir Monitoramento",
+        use_container_width=True,
+    )
+
+with a3:
+    st.markdown(
+        """
+        <div class="home-area-card">
+            <div class="home-area-number">03 · LPP</div>
+            <div class="home-area-title">Prevenção de lesão por pressão</div>
+            <div class="home-area-text">
+                Risco de LPP, fatores associados, posicionamento e
+                priorização preventiva.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.page_link(
+        "pages/3_Gestao_LPP.py",
+        label="Abrir Gestão de LPP",
+        use_container_width=True,
+    )
+
+
+st.write("")
+
+a4, a5, a6 = st.columns(3, gap="large")
+
+with a4:
+    st.markdown(
+        """
+        <div class="home-area-card">
+            <div class="home-area-number">04 · Operacional</div>
+            <div class="home-area-title">Capacidade da UTI</div>
+            <div class="home-area-text">
+                Ocupação, leitos, fluxo, permanência e carga assistencial
+                por turno.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.page_link(
+        "pages/4_Gestao_Operacional.py",
+        label="Abrir Operacional",
+        use_container_width=True,
+    )
+
+with a5:
+    st.markdown(
+        """
+        <div class="home-area-card">
+            <div class="home-area-number">05 · Alertas</div>
+            <div class="home-area-title">Central de priorização</div>
+            <div class="home-area-text">
+                Identifique rapidamente quais pacientes precisam de
+                atenção e os motivos associados.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.page_link(
+        "pages/5_Central_de_Alertas.py",
+        label="Abrir Central de Alertas",
+        use_container_width=True,
+    )
+
+with a6:
+    st.markdown(
+        """
+        <div class="home-area-card">
+            <div class="home-area-number">06 · Lean</div>
+            <div class="home-area-title">Melhoria de processos</div>
+            <div class="home-area-text">
+                Conecte os indicadores do dashboard aos conceitos de
+                Lean Healthcare e melhoria contínua.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.page_link(
+        "pages/7_Lean_Healthcare.py",
+        label="Abrir Lean Healthcare",
+        use_container_width=True,
+    )
+
+
+# ============================================================
+# SOBRE O PROTÓTIPO
+# ============================================================
+
+st.write("")
+
+st.markdown(
+    '<div class="home-section-title">Sobre o protótipo</div>',
+    unsafe_allow_html=True,
+)
+
+st.markdown(
+    """
+    <div class="home-about">
+        <strong>UTI Intelligent Care</strong> é um protótipo acadêmico
+        desenvolvido para demonstrar a integração entre dados clínicos,
+        risco de Lesão por Pressão, alertas e indicadores operacionais
+        em uma única solução de apoio à gestão da UTI.
+        <br><br>
+        Os dados utilizados são <strong>simulados</strong>. Os scores,
+        regras e alertas possuem finalidade conceitual e educacional e
+        não substituem avaliação profissional, protocolos institucionais
+        ou sistemas clínicos validados.
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
