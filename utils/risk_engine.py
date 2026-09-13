@@ -178,206 +178,95 @@ def classificar_risco_clinico(df):
 
     return df
 
+
 # ============================================================
-# SCORE DE RISCO LPP
-# MODELO CONCEITUAL PARA DADOS SIMULADOS
+# ESCALA DE BRADEN
+# AVALIAÇÃO CONVENCIONAL COMPLEMENTAR AO SCORE DINÂMICO DE LPP
 # ============================================================
 
-def calcular_score_lpp(df):
+def calcular_braden(df):
+    """Calcula a pontuação total da Escala de Braden."""
 
     df = df.copy()
 
+    colunas_braden = [
+        "braden_percepcao_sensorial",
+        "braden_umidade",
+        "braden_atividade",
+        "braden_mobilidade",
+        "braden_nutricao",
+        "braden_friccao_cisalhamento",
+    ]
 
-    score_total = pd.Series(
-        0,
-        index=df.index,
-        dtype=float
+    if not all(coluna in df.columns for coluna in colunas_braden):
+        df["braden_total"] = pd.NA
+        return df
+
+    for coluna in colunas_braden:
+        df[coluna] = pd.to_numeric(
+            df[coluna],
+            errors="coerce",
+        )
+
+    for coluna in [
+        "braden_percepcao_sensorial",
+        "braden_umidade",
+        "braden_atividade",
+        "braden_mobilidade",
+        "braden_nutricao",
+    ]:
+        df[coluna] = df[coluna].clip(1, 4)
+
+    df["braden_friccao_cisalhamento"] = (
+        df["braden_friccao_cisalhamento"]
+        .clip(1, 3)
     )
 
+    df["braden_total"] = (
+        df[colunas_braden]
+        .sum(axis=1, min_count=len(colunas_braden))
+    )
 
-    # ========================================================
-    # TEMPO NA POSIÇÃO
-    # ========================================================
-
-    if "tempo_posicao_atual_min" in df.columns:
-
-        tempo = df["tempo_posicao_atual_min"]
-
-        score_tempo = np.select(
-
-            [
-                tempo < 60,
-                (tempo >= 60) & (tempo < 120),
-                (tempo >= 120) & (tempo < 180),
-                tempo >= 180
-            ],
-
-            [
-                0,
-                10,
-                20,
-                30
-            ],
-
-            default=0
-        )
-
-        df["score_lpp_tempo"] = score_tempo
-        score_total += score_tempo
+    return df
 
 
-    # ========================================================
-    # PRESSÃO DO COLCHÃO
-    # ========================================================
+def classificar_braden(df):
+    """Classifica a pontuação total da Braden segundo a estratificação adotada no TCC."""
 
-    if "pressao_media_colchao" in df.columns:
+    df = df.copy()
 
-        pressao = df["pressao_media_colchao"]
+    def classificar(valor):
 
-        score_pressao = np.select(
+        if pd.isna(valor):
+            return "Não disponível"
 
-            [
-                pressao < 30,
-                (pressao >= 30) & (pressao < 50),
-                pressao >= 50
-            ],
+        if valor <= 9:
+            return "Severo"
 
-            [
-                0,
-                15,
-                25
-            ],
+        elif valor <= 12:
+            return "Alto"
 
-            default=0
-        )
+        elif valor <= 14:
+            return "Moderado"
 
-        df["score_lpp_pressao"] = score_pressao
-        score_total += score_pressao
-
-
-    # ========================================================
-    # MUDANÇAS DE POSIÇÃO
-    # ========================================================
-
-    if "mudancas_posicao_24h" in df.columns:
-
-        mudancas = df["mudancas_posicao_24h"]
-
-        score_mudancas = np.select(
-
-            [
-                mudancas >= 8,
-                (mudancas >= 4) & (mudancas < 8),
-                mudancas < 4
-            ],
-
-            [
-                0,
-                10,
-                20
-            ],
-
-            default=0
-        )
-
-        df["score_lpp_mudancas"] = score_mudancas
-        score_total += score_mudancas
-
-
-    # ========================================================
-    # ÍNDICE DE MOVIMENTO
-    # ========================================================
-
-    if "indice_movimento" in df.columns:
-
-        movimento = pd.to_numeric(
-            df["indice_movimento"],
-            errors="coerce",
-        ).fillna(0) * 100
-
-        score_movimento = np.select(
-
-            [
-                movimento >= 70,
-                (movimento >= 40) & (movimento < 70),
-                movimento < 40
-            ],
-
-            [
-                0,
-                10,
-                20
-            ],
-
-            default=0
-        )
-
-        df["score_lpp_movimento"] = score_movimento
-        score_total += score_movimento
-
-
-    # ========================================================
-    # RISCO DE IMOBILIDADE
-    # ========================================================
-
-    if "risco_imobilidade" in df.columns:
-
-        risco = df["risco_imobilidade"]
-
-        # Funciona se o risco já estiver entre 0 e 10
-        # ou em escala percentual
-
-        risco = pd.to_numeric(
-            risco,
-            errors="coerce"
-        )
-
-        risco = risco.fillna(0)
-
-
-        if risco.max() <= 10:
-
-            score_imobilidade = risco * 2
+        elif valor <= 18:
+            return "Leve"
 
         else:
+            return "Mínimo"
 
-            score_imobilidade = risco * 0.2
-
-
-        df["score_lpp_imobilidade"] = score_imobilidade.round(1)
-        score_total += score_imobilidade
-
-
-    # ========================================================
-    # GARANTIR COMPONENTES DO MOTOR
-    # ========================================================
-
-    for coluna_componente in [
-        "score_lpp_tempo",
-        "score_lpp_pressao",
-        "score_lpp_mudancas",
-        "score_lpp_movimento",
-        "score_lpp_imobilidade",
-    ]:
-        if coluna_componente not in df.columns:
-            df[coluna_componente] = 0.0
-
-    # ========================================================
-    # LIMITAR ENTRE 0 E 100
-    # ========================================================
-
-    df["score_lpp"] = (
-        score_total
-        .clip(0, 100)
-        .round(1)
+    df["braden_classificacao"] = (
+        df["braden_total"]
+        .apply(classificar)
     )
-
 
     return df
 
 # ============================================================
 # SCORE DE RISCO LPP
 # MODELO CONCEITUAL PARA DADOS SIMULADOS
+# ============================================================
+
 # ============================================================
 
 def calcular_score_lpp(df):
@@ -782,6 +671,10 @@ def processar_riscos(df):
     df = calcular_score_clinico(df)
 
     df = classificar_risco_clinico(df)
+
+    df = calcular_braden(df)
+
+    df = classificar_braden(df)
 
     df = calcular_score_lpp(df)
 
