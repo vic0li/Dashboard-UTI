@@ -222,6 +222,7 @@ def calcular_score_lpp(df):
             default=0
         )
 
+        df["score_lpp_tempo"] = score_tempo
         score_total += score_tempo
 
 
@@ -250,6 +251,7 @@ def calcular_score_lpp(df):
             default=0
         )
 
+        df["score_lpp_pressao"] = score_pressao
         score_total += score_pressao
 
 
@@ -278,6 +280,7 @@ def calcular_score_lpp(df):
             default=0
         )
 
+        df["score_lpp_mudancas"] = score_mudancas
         score_total += score_mudancas
 
 
@@ -287,7 +290,10 @@ def calcular_score_lpp(df):
 
     if "indice_movimento" in df.columns:
 
-        movimento = df["indice_movimento"]
+        movimento = pd.to_numeric(
+            df["indice_movimento"],
+            errors="coerce",
+        ).fillna(0) * 100
 
         score_movimento = np.select(
 
@@ -306,6 +312,7 @@ def calcular_score_lpp(df):
             default=0
         )
 
+        df["score_lpp_movimento"] = score_movimento
         score_total += score_movimento
 
 
@@ -337,8 +344,23 @@ def calcular_score_lpp(df):
             score_imobilidade = risco * 0.2
 
 
+        df["score_lpp_imobilidade"] = score_imobilidade.round(1)
         score_total += score_imobilidade
 
+
+    # ========================================================
+    # GARANTIR COMPONENTES DO MOTOR
+    # ========================================================
+
+    for coluna_componente in [
+        "score_lpp_tempo",
+        "score_lpp_pressao",
+        "score_lpp_mudancas",
+        "score_lpp_movimento",
+        "score_lpp_imobilidade",
+    ]:
+        if coluna_componente not in df.columns:
+            df[coluna_componente] = 0.0
 
     # ========================================================
     # LIMITAR ENTRE 0 E 100
@@ -397,6 +419,7 @@ def calcular_score_lpp(df):
             default=0
         )
 
+        df["score_lpp_tempo"] = score_tempo
         score_total += score_tempo
 
 
@@ -425,6 +448,7 @@ def calcular_score_lpp(df):
             default=0
         )
 
+        df["score_lpp_pressao"] = score_pressao
         score_total += score_pressao
 
 
@@ -453,6 +477,7 @@ def calcular_score_lpp(df):
             default=0
         )
 
+        df["score_lpp_mudancas"] = score_mudancas
         score_total += score_mudancas
 
 
@@ -462,7 +487,10 @@ def calcular_score_lpp(df):
 
     if "indice_movimento" in df.columns:
 
-        movimento = df["indice_movimento"]
+        movimento = pd.to_numeric(
+            df["indice_movimento"],
+            errors="coerce",
+        ).fillna(0) * 100
 
         score_movimento = np.select(
 
@@ -481,6 +509,7 @@ def calcular_score_lpp(df):
             default=0
         )
 
+        df["score_lpp_movimento"] = score_movimento
         score_total += score_movimento
 
 
@@ -512,8 +541,23 @@ def calcular_score_lpp(df):
             score_imobilidade = risco * 0.2
 
 
+        df["score_lpp_imobilidade"] = score_imobilidade.round(1)
         score_total += score_imobilidade
 
+
+    # ========================================================
+    # GARANTIR COMPONENTES DO MOTOR
+    # ========================================================
+
+    for coluna_componente in [
+        "score_lpp_tempo",
+        "score_lpp_pressao",
+        "score_lpp_mudancas",
+        "score_lpp_movimento",
+        "score_lpp_imobilidade",
+    ]:
+        if coluna_componente not in df.columns:
+            df[coluna_componente] = 0.0
 
     # ========================================================
     # LIMITAR ENTRE 0 E 100
