@@ -601,7 +601,6 @@ col_classificacao = encontrar_coluna(
     df_monitoramento,
     [
         "classificacao_clinica",
-        "nivel_risco_clinico",
     ],
 )
 
@@ -609,7 +608,6 @@ col_score = encontrar_coluna(
     df_monitoramento,
     [
         "score_clinico",
-        "score_risco_clinico",
     ],
 )
 
