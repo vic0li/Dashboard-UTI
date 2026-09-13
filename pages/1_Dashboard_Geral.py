@@ -286,7 +286,6 @@ col_clinico = detectar_coluna(
     df_atual,
     [
         "classificacao_clinica",
-        "nivel_risco_clinico",
     ],
 )
 
@@ -294,7 +293,6 @@ col_lpp = detectar_coluna(
     df_atual,
     [
         "classificacao_lpp",
-        "nivel_risco_LPP",
     ],
 )
 
@@ -309,7 +307,6 @@ col_score_clinico = detectar_coluna(
     df_atual,
     [
         "score_clinico",
-        "score_risco_clinico",
     ],
 )
 
@@ -317,7 +314,6 @@ col_score_lpp = detectar_coluna(
     df_atual,
     [
         "score_lpp",
-        "risco_LPP",
     ],
 )
 
