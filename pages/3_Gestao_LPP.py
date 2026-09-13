@@ -326,6 +326,13 @@ df_atual["classificacao_lpp_fmt"] = (
     .apply(normalizar_nivel)
 )
 
+df_atual["braden_classificacao_fmt"] = (
+    df_atual["braden_classificacao"]
+    .astype(str)
+    .str.replace("_", " ", regex=False)
+    .str.title()
+)
+
 
 # ============================================================
 # CABEÇALHO
@@ -346,8 +353,8 @@ st.markdown(
         </div>
         <div class="lpp-info">
             <b>Modelo acadêmico de apoio à decisão</b><br>
-            Os indicadores abaixo são calculados a partir dos dados simulados
-            disponíveis no protótipo.
+            O score dinâmico de LPP é complementado pela Escala de Braden,
+            cujas subescalas também foram simuladas para fins de protótipo.
         </div>
     </div>
     """,
@@ -372,6 +379,16 @@ risco_medio = df_atual["score_lpp"].mean()
 tempo_medio = df_atual["tempo_posicao_atual_min"].mean()
 
 reposicionamentos_media = df_atual["mudancas_posicao_24h"].mean()
+
+braden_risco_relevante = int(
+    (
+        pd.to_numeric(
+            df_atual["braden_total"],
+            errors="coerce",
+        )
+        <= 14
+    ).sum()
+)
 
 reposicionamento_pendente = int(
     (
@@ -422,8 +439,9 @@ with c4:
 
 with c5:
     st.metric(
-        "Mudanças de posição / 24h",
-        f"{reposicionamentos_media:.1f}",
+        "Braden ≤ 14",
+        f"{braden_risco_relevante}",
+        help="Pacientes classificados pela Braden como risco moderado, alto ou severo.",
     )
 
 
@@ -634,6 +652,8 @@ with col_prioridade:
                 "id_paciente",
                 "classificacao_lpp_fmt",
                 "score_lpp",
+                "braden_total",
+                "braden_classificacao_fmt",
                 "tempo_posicao_atual_min",
                 "mudancas_posicao_24h",
                 "fatores_score_lpp",
@@ -677,11 +697,24 @@ with col_prioridade:
 
     tabela["Risco"] = tabela["classificacao_lpp_fmt"]
 
+    tabela["Braden"] = (
+        pd.to_numeric(
+            tabela["braden_total"],
+            errors="coerce",
+        )
+        .round(0)
+        .astype("Int64")
+    )
+
+    tabela["Risco Braden"] = tabela["braden_classificacao_fmt"]
+
     tabela_exibir = tabela[
         [
             "Paciente",
             "Risco",
             "Score LPP",
+            "Braden",
+            "Risco Braden",
             "Tempo na posição",
             "Mudanças / 24h",
         ]
@@ -706,6 +739,13 @@ with col_prioridade:
                 min_value=0,
                 max_value=100,
                 format="%d",
+            ),
+            "Braden": st.column_config.NumberColumn(
+                "Braden",
+                help="Pontuação total da Escala de Braden. Quanto menor, maior o risco.",
+            ),
+            "Risco Braden": st.column_config.TextColumn(
+                "Risco Braden",
             ),
             "Tempo na posição": st.column_config.TextColumn(
                 "Tempo na posição",
@@ -867,7 +907,7 @@ atual = (
 # KPIs INDIVIDUAIS
 # ------------------------------------------------------------
 
-p1, p2, p3, p4 = st.columns(4)
+p1, p2, p3, p4, p5 = st.columns(5)
 
 with p1:
     st.metric(
@@ -891,6 +931,18 @@ with p4:
     st.metric(
         "Índice de movimento",
         f"{atual['indice_movimento'] * 100:.0f}%",
+    )
+
+with p5:
+    braden_atual = pd.to_numeric(
+        pd.Series([atual.get("braden_total")]),
+        errors="coerce",
+    ).iloc[0]
+
+    st.metric(
+        "Escala de Braden",
+        f"{braden_atual:.0f}" if pd.notna(braden_atual) else "N/D",
+        help="Quanto menor a pontuação, maior o risco segundo a Escala de Braden.",
     )
 
 
@@ -1122,6 +1174,139 @@ with risco_col:
             """,
             unsafe_allow_html=True,
         )
+
+
+
+# ============================================================
+# ESCALA DE BRADEN — AVALIAÇÃO CONVENCIONAL COMPLEMENTAR
+# ============================================================
+
+st.write("")
+
+st.markdown(
+    '<div class="lpp-section-title">Escala de Braden</div>',
+    unsafe_allow_html=True,
+)
+st.markdown(
+    '<div class="lpp-section-subtitle">Avaliação convencional complementar ao score dinâmico de LPP. As seis subescalas foram simuladas para fins acadêmicos; pontuações menores indicam maior risco.</div>',
+    unsafe_allow_html=True,
+)
+
+braden_hist_col, braden_sub_col = st.columns(
+    [1.25, 0.95],
+    gap="large",
+)
+
+with braden_hist_col:
+
+    hist_braden = (
+        df[
+            df["id_paciente"] == paciente_id
+        ]
+        .sort_values("timestamp_dt")
+        .tail(48)
+        .copy()
+    )
+
+    fig_braden = go.Figure()
+
+    fig_braden.add_trace(
+        go.Scatter(
+            x=hist_braden["timestamp_dt"],
+            y=hist_braden["braden_total"],
+            mode="lines+markers",
+            line=dict(color="#6F5CC2", width=3),
+            marker=dict(
+                size=6,
+                color="#6F5CC2",
+                line=dict(color="#FFFFFF", width=1),
+            ),
+            hovertemplate=(
+                "<b>%{x|%d/%m %H:%M}</b>"
+                "<br>Braden: %{y:.0f}"
+                "<extra></extra>"
+            ),
+        )
+    )
+
+    fig_braden.add_hrect(y0=6, y1=9, fillcolor="rgba(198,40,40,.07)", line_width=0)
+    fig_braden.add_hrect(y0=10, y1=12, fillcolor="rgba(239,83,80,.06)", line_width=0)
+    fig_braden.add_hrect(y0=13, y1=14, fillcolor="rgba(249,168,37,.07)", line_width=0)
+    fig_braden.add_hrect(y0=15, y1=18, fillcolor="rgba(76,175,80,.05)", line_width=0)
+    fig_braden.add_hrect(y0=19, y1=23, fillcolor="rgba(46,125,50,.04)", line_width=0)
+
+    fig_braden.update_layout(
+        title_text="Evolução da pontuação de Braden",
+        xaxis_title="Horário",
+        yaxis_title="Pontuação Braden",
+        showlegend=False,
+    )
+
+    fig_braden.update_yaxes(
+        range=[5.5, 23.5],
+        dtick=2,
+        gridcolor="#E7EEF3",
+        zeroline=False,
+    )
+
+    fig_braden.update_xaxes(gridcolor="#F0F4F7")
+
+    tema_plotly(fig_braden, altura=350)
+
+    st.plotly_chart(
+        fig_braden,
+        use_container_width=True,
+        config={"displayModeBar": False},
+    )
+
+with braden_sub_col:
+
+    st.markdown(
+        '<div class="lpp-section-title">Subescalas atuais</div>',
+        unsafe_allow_html=True,
+    )
+
+    subescalas = pd.DataFrame(
+        {
+            "Subescala": [
+                "Percepção sensorial",
+                "Umidade",
+                "Atividade",
+                "Mobilidade",
+                "Nutrição",
+                "Fricção/cisalhamento",
+            ],
+            "Pontuação": [
+                atual.get("braden_percepcao_sensorial"),
+                atual.get("braden_umidade"),
+                atual.get("braden_atividade"),
+                atual.get("braden_mobilidade"),
+                atual.get("braden_nutricao"),
+                atual.get("braden_friccao_cisalhamento"),
+            ],
+            "Máximo": [4, 4, 4, 4, 4, 3],
+        }
+    )
+
+    st.dataframe(
+        subescalas,
+        use_container_width=True,
+        hide_index=True,
+        height=285,
+    )
+
+    classificacao_braden_atual = str(
+        atual.get("braden_classificacao", "Não disponível")
+    )
+
+    if pd.notna(braden_atual):
+        st.info(
+            f"Braden atual: {braden_atual:.0f} — {classificacao_braden_atual}. "
+            "A Braden é apresentada como referência convencional e não é somada "
+            "ao score dinâmico de LPP nem ao índice de prioridade do protótipo."
+        )
+    else:
+        st.info("Pontuação de Braden não disponível para este paciente.")
 
 
 # ============================================================
