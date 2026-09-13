@@ -12,6 +12,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 from utils.data_loader import load_data
+from utils.analytics import processar_dados
+from utils.risk_engine import processar_riscos
 from utils.styling import aplicar_estilo, topo_produto, navegacao_topo
 
 
@@ -141,7 +143,8 @@ st.markdown(
     .pill-baixo,
     .pill-moderado,
     .pill-alto,
-    .pill-muito-alto {
+    .pill-muito-alto,
+    .pill-critico {
         display: inline-block;
         border-radius: 999px;
         padding: 5px 10px;
@@ -164,7 +167,8 @@ st.markdown(
         background: #FDE8E7;
     }
 
-    .pill-muito-alto {
+    .pill-muito-alto,
+    .pill-critico {
         color: #8E2530;
         background: #F8DDE1;
     }
@@ -237,12 +241,16 @@ def normalizar_nivel(valor):
         "alto": "Alto",
         "muito_alto": "Muito alto",
         "muito alto": "Muito alto",
+        "crítico": "Crítico",
+        "critico": "Crítico",
     }
     return mapa.get(valor, valor.replace("_", " ").title())
 
 
 def classe_risco(valor):
     valor = str(valor).strip().lower()
+    if valor in ("crítico", "critico"):
+        return "pill-critico"
     if valor in ("muito_alto", "muito alto"):
         return "pill-muito-alto"
     if valor == "alto":
@@ -290,7 +298,11 @@ if df.empty:
     st.warning("A base de dados está vazia.")
     st.stop()
 
-df["timestamp_dt"] = converter_timestamp(df["timestamp"])
+# Fonte oficial dos indicadores: pipeline analítico + motor de risco.
+df = processar_dados(df)
+df = processar_riscos(df)
+
+df["timestamp_dt"] = pd.to_datetime(df["timestamp"], errors="coerce")
 df = df.dropna(subset=["timestamp_dt"])
 
 if df.empty:
@@ -309,8 +321,8 @@ df_atual = (
       .copy()
 )
 
-df_atual["nivel_risco_LPP_fmt"] = (
-    df_atual["nivel_risco_LPP"]
+df_atual["classificacao_lpp_fmt"] = (
+    df_atual["classificacao_lpp"]
     .apply(normalizar_nivel)
 )
 
@@ -350,12 +362,12 @@ st.markdown(
 total_pacientes = df_atual["id_paciente"].nunique()
 
 alto_risco = df_atual[
-    df_atual["nivel_risco_LPP"].astype(str).str.lower().isin(
-        ["alto", "muito_alto", "muito alto"]
+    df_atual["classificacao_lpp"].astype(str).str.lower().isin(
+        ["alto", "crítico", "critico"]
     )
 ]["id_paciente"].nunique()
 
-risco_medio = df_atual["risco_LPP"].mean()
+risco_medio = df_atual["score_lpp"].mean()
 
 tempo_medio = df_atual["tempo_posicao_atual_min"].mean()
 
@@ -385,7 +397,7 @@ c1, c2, c3, c4, c5 = st.columns(5)
 
 with c1:
     st.metric(
-        "Alto / muito alto risco",
+        "Alto / crítico",
         f"{alto_risco}",
     )
 
@@ -436,10 +448,10 @@ with graf1:
         unsafe_allow_html=True,
     )
 
-    ordem = ["Baixo", "Moderado", "Alto", "Muito alto"]
+    ordem = ["Baixo", "Moderado", "Alto", "Crítico"]
 
     distribuicao = (
-        df_atual["nivel_risco_LPP_fmt"]
+        df_atual["classificacao_lpp_fmt"]
         .value_counts()
         .reindex(ordem, fill_value=0)
         .reset_index()
@@ -451,7 +463,7 @@ with graf1:
         "Baixo": "#7CB342",
         "Moderado": "#F9A825",
         "Alto": "#EF5350",
-        "Muito alto": "#C62828",
+        "Crítico": "#C62828",
     }
 
     fig_donut = go.Figure(
@@ -530,12 +542,12 @@ with graf2:
         df_atual[
             [
                 "id_paciente",
-                "risco_LPP",
-                "nivel_risco_LPP_fmt",
+                "score_lpp",
+                "classificacao_lpp_fmt",
             ]
         ]
         .sort_values(
-            "risco_LPP",
+            "score_lpp",
             ascending=False,
         )
         .head(12)
@@ -553,12 +565,12 @@ with graf2:
     fig_bar = px.bar(
         df_barras,
         x="Paciente",
-        y="risco_LPP",
-        color="nivel_risco_LPP_fmt",
+        y="score_lpp",
+        color="classificacao_lpp_fmt",
         color_discrete_map=cores_risco,
         labels={
-            "risco_LPP": "Score de risco",
-            "nivel_risco_LPP_fmt": "Risco",
+            "score_lpp": "Score de risco",
+            "classificacao_lpp_fmt": "Risco",
         },
     )
 
@@ -620,15 +632,15 @@ with col_prioridade:
         df_atual[
             [
                 "id_paciente",
-                "nivel_risco_LPP_fmt",
-                "risco_LPP",
+                "classificacao_lpp_fmt",
+                "score_lpp",
                 "tempo_posicao_atual_min",
                 "mudancas_posicao_24h",
-                "fatores_risco_LPP",
+                "fatores_score_lpp",
             ]
         ]
         .sort_values(
-            ["risco_LPP", "tempo_posicao_atual_min"],
+            ["score_lpp", "tempo_posicao_atual_min"],
             ascending=[False, False],
         )
         .head(8)
@@ -652,7 +664,7 @@ with col_prioridade:
     )
 
     tabela["Score LPP"] = (
-        tabela["risco_LPP"]
+        tabela["score_lpp"]
         .round(0)
         .astype(int)
     )
@@ -663,7 +675,7 @@ with col_prioridade:
         .astype(int)
     )
 
-    tabela["Risco"] = tabela["nivel_risco_LPP_fmt"]
+    tabela["Risco"] = tabela["classificacao_lpp_fmt"]
 
     tabela_exibir = tabela[
         [
@@ -719,16 +731,18 @@ with col_componentes:
     componentes = pd.DataFrame(
         {
             "Fator": [
-                "Imobilidade",
+                "Tempo",
                 "Pressão",
-                "Perfusão",
-                "Tempo na posição",
+                "Mudanças",
+                "Movimento",
+                "Imobilidade",
             ],
             "Contribuição": [
-                df_atual["risco_imobilidade"].mean(),
-                df_atual["risco_pressao"].mean(),
-                df_atual["risco_perfusao"].mean(),
-                df_atual["risco_tempo_posicao"].mean(),
+                df_atual["score_lpp_tempo"].mean(),
+                df_atual["score_lpp_pressao"].mean(),
+                df_atual["score_lpp_mudancas"].mean(),
+                df_atual["score_lpp_movimento"].mean(),
+                df_atual["score_lpp_imobilidade"].mean(),
             ],
         }
     )
@@ -738,6 +752,7 @@ with col_componentes:
         "#8E5BD9",
         "#35B5AD",
         "#F39A38",
+        "#5A7D8C",
     ]
 
     fig_componentes = go.Figure(
@@ -746,7 +761,7 @@ with col_componentes:
             y=componentes["Contribuição"],
             marker_color=cores_componentes,
             text=[
-                f"{v:.0f}%"
+                f"{v:.1f} pts"
                 for v in componentes["Contribuição"]
             ],
             textposition="outside",
@@ -757,7 +772,7 @@ with col_componentes:
     fig_componentes.update_layout(
         title_text="",
         xaxis_title="",
-        yaxis_title="Contribuição média",
+        yaxis_title="Pontos médios no score",
         showlegend=False,
     )
 
@@ -765,7 +780,7 @@ with col_componentes:
         range=[
             0,
             max(
-                100,
+                30,
                 componentes["Contribuição"].max() * 1.22,
             ),
         ],
@@ -808,7 +823,7 @@ st.markdown(
 # Opções ordenadas por maior risco atual
 ordem_pacientes = (
     df_atual.sort_values(
-        "risco_LPP",
+        "score_lpp",
         ascending=False,
     )["id_paciente"]
     .astype(int)
@@ -824,11 +839,11 @@ for pid in ordem_pacientes:
     ].iloc[0]
 
     nivel = normalizar_nivel(
-        linha["nivel_risco_LPP"]
+        linha["classificacao_lpp"]
     )
 
     mapa_opcoes[
-        f"P{pid:02d} · {nivel} · score {linha['risco_LPP']:.0f}"
+        f"P{pid:02d} · {nivel} · score {linha['score_lpp']:.0f}"
     ] = pid
 
 
@@ -875,7 +890,7 @@ with p3:
 with p4:
     st.metric(
         "Índice de movimento",
-        f"{atual['indice_movimento']:.2f}",
+        f"{atual['indice_movimento'] * 100:.0f}%",
     )
 
 
@@ -914,7 +929,7 @@ with hist_col:
     fig_hist.add_trace(
         go.Scatter(
             x=hist["timestamp_dt"],
-            y=hist["risco_LPP"],
+            y=hist["score_lpp"],
             mode="lines+markers",
             line=dict(
                 color="#2B84C5",
@@ -941,27 +956,27 @@ with hist_col:
     # Faixas visuais aproximadas para facilitar leitura
     fig_hist.add_hrect(
         y0=0,
-        y1=24,
+        y1=29,
         fillcolor="rgba(124,179,66,.06)",
         line_width=0,
     )
 
     fig_hist.add_hrect(
-        y0=25,
-        y1=49,
+        y0=30,
+        y1=59,
         fillcolor="rgba(249,168,37,.06)",
         line_width=0,
     )
 
     fig_hist.add_hrect(
-        y0=50,
-        y1=74,
+        y0=60,
+        y1=79,
         fillcolor="rgba(239,83,80,.05)",
         line_width=0,
     )
 
     fig_hist.add_hrect(
-        y0=75,
+        y0=80,
         y1=100,
         fillcolor="rgba(198,40,40,.06)",
         line_width=0,
@@ -1007,42 +1022,26 @@ with risco_col:
         unsafe_allow_html=True,
     )
 
-    fatores = str(
-        atual.get(
-            "fatores_risco_LPP",
-            "",
-        )
-    ).strip()
+    fatores_motor = [
+        ("Tempo na posição", atual.get("score_lpp_tempo", 0)),
+        ("Pressão no colchão", atual.get("score_lpp_pressao", 0)),
+        ("Mudanças de posição", atual.get("score_lpp_mudancas", 0)),
+        ("Índice de movimento", atual.get("score_lpp_movimento", 0)),
+        ("Imobilidade", atual.get("score_lpp_imobilidade", 0)),
+    ]
 
-    if fatores and fatores.lower() != "nan":
+    fatores_ativos = [
+        (nome, float(valor))
+        for nome, valor in fatores_motor
+        if pd.notna(valor) and float(valor) > 0
+    ]
 
-        lista_fatores = [
-            item.strip()
-            for item in fatores.split(",")
-            if item.strip()
-        ]
-
-        traducoes = {
-            "baixa_mobilidade": "Baixa mobilidade",
-            "mobilidade_reduzida": "Mobilidade reduzida",
-            "tempo_posicao_prolongado": "Tempo prolongado na posição",
-            "poucas_mudancas_posicao": "Poucas mudanças de posição",
-            "pressao_elevada": "Pressão elevada no colchão",
-            "baixa_perfusao": "Baixa perfusão",
-            "lactato_elevado": "Lactato elevado",
-            "diabetes": "Diabetes",
-            "doenca_renal": "Doença renal",
-            "idade": "Idade",
-            "idade_avancada": "Idade avançada",
-        }
-
-        for fator in lista_fatores[:7]:
-
-            texto = traducoes.get(
-                fator,
-                fator.replace("_", " ").capitalize(),
-            )
-
+    if fatores_ativos:
+        for nome, pontos in sorted(
+            fatores_ativos,
+            key=lambda item: item[1],
+            reverse=True,
+        ):
             st.markdown(
                 f"""
                 <div style="
@@ -1057,28 +1056,23 @@ with risco_col:
                         color:#35576F;
                         font-size:15px;
                         font-weight:650;
-                    ">{texto}</span>
+                    ">{nome}</span>
                     <span style="
-                        width:9px;
-                        height:9px;
-                        border-radius:50%;
-                        background:#F39A38;
-                        flex:0 0 auto;
-                    "></span>
+                        color:#B45F06;
+                        font-size:14px;
+                        font-weight:750;
+                    ">+{pontos:.1f} pts</span>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
-
     else:
-
         st.info(
-            "Nenhum fator de risco adicional foi registrado para este paciente."
+            "Nenhum componente do motor adicionou pontos ao score de LPP neste registro."
         )
 
-
     nivel_atual = str(
-        atual["nivel_risco_LPP"]
+        atual["classificacao_lpp"]
     ).lower()
 
     tempo_atual = float(
@@ -1088,8 +1082,8 @@ with risco_col:
     if (
         nivel_atual in [
             "alto",
-            "muito_alto",
-            "muito alto",
+            "crítico",
+            "critico",
         ]
         or tempo_atual >= 120
     ):
