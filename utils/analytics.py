@@ -18,10 +18,28 @@ def preparar_dados(df):
 
     if "timestamp" in df.columns:
 
-        df["timestamp"] = pd.to_datetime(
-            df["timestamp"],
-            errors="coerce"
+        serie_timestamp = df["timestamp"].astype(str).str.strip()
+
+        # A base clínica utiliza o padrão brasileiro dia/mês/ano.
+        # Primeiro tentamos o formato esperado explicitamente para evitar
+        # inversões entre dia e mês (ex.: 07/09 -> 9 de julho).
+        timestamp_convertido = pd.to_datetime(
+            serie_timestamp,
+            format="%d/%m/%Y %H:%M",
+            errors="coerce",
         )
+
+        # Fallback para eventuais registros já em formato ISO ou com
+        # pequenas variações de formatação.
+        mascara_fallback = timestamp_convertido.isna()
+        if mascara_fallback.any():
+            timestamp_convertido.loc[mascara_fallback] = pd.to_datetime(
+                serie_timestamp.loc[mascara_fallback],
+                dayfirst=True,
+                errors="coerce",
+            )
+
+        df["timestamp"] = timestamp_convertido
 
 
     # ========================================================
