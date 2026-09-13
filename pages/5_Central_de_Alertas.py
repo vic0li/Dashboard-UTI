@@ -1,10 +1,12 @@
 # ============================================================
-# CENTRAL DE ALERTAS
+# GESTÃO OPERACIONAL DA UTI
 # UTI INTELLIGENT CARE
 #
-# Integra alertas clínicos e preventivos de LPP para apoiar
-# a priorização visual no protótipo acadêmico.
+# Integra dados clínicos simulados e dados operacionais
+# simulados para acompanhamento da capacidade e do fluxo da UTI.
 # ============================================================
+
+from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
@@ -16,11 +18,11 @@ from utils.styling import aplicar_estilo, topo_produto, navegacao_topo
 
 
 # ============================================================
-# CONFIGURAÇÃO DA PÁGINA
+# CONFIGURAÇÃO
 # ============================================================
 
 st.set_page_config(
-    page_title="Central de Alertas | UTI Intelligent Care",
+    page_title="Gestão Operacional | UTI Intelligent Care",
     page_icon="",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -28,7 +30,7 @@ st.set_page_config(
 
 aplicar_estilo()
 topo_produto()
-navegacao_topo("Alertas")
+navegacao_topo("Operacional")
 
 
 # ============================================================
@@ -38,7 +40,7 @@ navegacao_topo("Alertas")
 st.markdown(
     """
     <style>
-    .alert-header {
+    .op-header {
         display:flex;
         align-items:center;
         justify-content:space-between;
@@ -46,26 +48,26 @@ st.markdown(
         padding:12px 2px 20px 2px;
     }
 
-    .alert-header-left {
+    .op-header-left {
         display:flex;
         align-items:center;
         gap:16px;
     }
 
-    .alert-header-icon {
+    .op-header-icon {
         width:58px;
         height:58px;
         border-radius:18px;
         display:grid;
         place-items:center;
-        background:#FFF2EA;
-        border:1px solid #F0D7C6;
-        color:#D86A32;
-        font-size:24px;
+        background:#EAF4FA;
+        border:1px solid #D4E6F1;
+        color:#1F6EA5;
+        font-size:25px;
         font-weight:850;
     }
 
-    .alert-title {
+    .op-title {
         color:#0D2A45;
         font-size:34px;
         line-height:1.15;
@@ -74,25 +76,25 @@ st.markdown(
         margin:0;
     }
 
-    .alert-subtitle {
+    .op-subtitle {
         color:#667F92;
         font-size:17px;
         line-height:1.5;
         margin-top:6px;
     }
 
-    .alert-info {
-        max-width:360px;
-        background:#F7FAFC;
-        border:1px solid #DCE7EE;
+    .op-info {
+        max-width:350px;
+        background:#EEF7FC;
+        border:1px solid #D3E7F2;
         border-radius:12px;
         padding:12px 15px;
-        color:#506C80;
+        color:#45657C;
         font-size:14px;
         line-height:1.45;
     }
 
-    .section-title {
+    .op-section-title {
         color:#0D2A45;
         font-size:25px;
         font-weight:850;
@@ -100,76 +102,45 @@ st.markdown(
         margin:8px 0 4px 0;
     }
 
-    .section-subtitle {
+    .op-section-subtitle {
         color:#738B9C;
         font-size:15px;
         margin-bottom:12px;
     }
 
-    .priority-card {
-        border-radius:14px;
-        padding:15px 17px;
-        border:1px solid #DCE7EE;
-        background:#FFFFFF;
-        box-shadow:0 3px 12px rgba(23,59,83,.04);
-        margin-bottom:10px;
-    }
-
-    .priority-critical {
-        border-left:5px solid #E5484D;
-        background:#FFF8F8;
-    }
-
-    .priority-high {
-        border-left:5px solid #F09A3E;
-        background:#FFF9F2;
-    }
-
-    .priority-moderate {
-        border-left:5px solid #E6C24A;
-        background:#FFFDF4;
-    }
-
-    .priority-low {
-        border-left:5px solid #159A7A;
-        background:#F7FCFA;
-    }
-
-    .priority-title {
-        color:#16364E;
-        font-size:17px;
-        font-weight:800;
-        margin-bottom:4px;
-    }
-
-    .priority-text {
-        color:#637D8F;
-        font-size:14px;
-        line-height:1.45;
-    }
-
-    .legend-pill {
-        display:inline-block;
-        border-radius:999px;
-        padding:5px 10px;
-        margin-right:6px;
-        font-size:13px;
-        font-weight:750;
-    }
-
-    .pill-critical { background:#FDEAEA; color:#B8383D; }
-    .pill-high { background:#FFF0DD; color:#B46A20; }
-    .pill-moderate { background:#FFF7D8; color:#8E741C; }
-    .pill-low { background:#EAF8F2; color:#24765F; }
-
-    .recommendation {
+    .op-note {
         background:#F7FAFC;
         border:1px solid #DCE8EF;
         border-radius:12px;
+        padding:13px 15px;
+        color:#587287;
+        font-size:14px;
+        line-height:1.5;
+        margin-top:8px;
+    }
+
+    .op-alert {
+        background:#FFF4E7;
+        border:1px solid #F2D7B2;
+        border-left:5px solid #F2A34A;
+        border-radius:12px;
         padding:14px 16px;
-        color:#526F83;
-        line-height:1.55;
+        color:#6D563B;
         font-size:15px;
+        line-height:1.5;
+        margin-top:10px;
+    }
+
+    .op-good {
+        background:#EFF9F4;
+        border:1px solid #CFEADC;
+        border-left:5px solid #159A7A;
+        border-radius:12px;
+        padding:14px 16px;
+        color:#45685D;
+        font-size:15px;
+        line-height:1.5;
+        margin-top:10px;
     }
     </style>
     """,
@@ -181,7 +152,53 @@ st.markdown(
 # FUNÇÕES AUXILIARES
 # ============================================================
 
+def localizar_base_operacional():
+    """
+    Procura a base operacional dentro da pasta data do projeto.
+    Aceita variações simples de nome para facilitar a substituição.
+    """
+    raiz = Path(__file__).resolve().parent.parent
+
+    candidatos = [
+        raiz / "data" / "UTI_operacional.csv",
+        raiz / "data" / "uti_operacional.csv",
+        raiz / "UTI_operacional.csv",
+    ]
+
+    for caminho in candidatos:
+        if caminho.exists():
+            return caminho
+
+    return None
+
+
+@st.cache_data
+def carregar_operacional(caminho_str):
+    caminho = Path(caminho_str)
+    return pd.read_csv(
+        caminho,
+        sep=";",
+        encoding="utf-8-sig",
+    )
+
+
+def converter_data_hora(serie):
+    """
+    Conversão robusta para datas em diferentes formatos.
+    """
+    convertido = pd.to_datetime(
+        serie,
+        errors="coerce",
+        dayfirst=True,
+    )
+    return convertido
+
+
 def tema_plotly(fig, altura=350):
+    """
+    Mantém os gráficos coerentes com a identidade visual do dashboard.
+    O título interno fica explicitamente vazio para não aparecer 'undefined'.
+    """
     fig.update_layout(
         title_text="",
         height=altura,
@@ -202,234 +219,160 @@ def tema_plotly(fig, altura=350):
     return fig
 
 
-def normalizar_bool(valor):
-    if pd.isna(valor):
-        return False
+def formatar_diagnostico(texto):
+    if pd.isna(texto):
+        return "Não informado"
 
-    if isinstance(valor, bool):
-        return valor
-
-    if isinstance(valor, (int, float)):
-        return valor != 0
-
-    txt = str(valor).strip().lower()
-
-    return txt in {
-        "1", "true", "sim", "yes", "y", "s",
-        "alerta", "ativo", "alto", "critico", "crítico"
-    }
-
-
-def nivel_prioridade(row):
-    """
-    Regra visual acadêmica para ordenar a central.
-    Não representa protocolo clínico validado.
-    """
-
-    qtd_alertas = int(row.get("quantidade_alertas_calc", 0))
-    risco_lpp = str(row.get("nivel_risco_LPP", "")).strip().lower()
-    risco_clinico = str(row.get("nivel_risco_clinico", "")).strip().lower()
-    tempo_posicao = pd.to_numeric(
-        row.get("tempo_posicao_atual_min", 0),
-        errors="coerce",
+    return (
+        str(texto)
+        .replace("_", " ")
+        .strip()
+        .capitalize()
     )
-
-    if pd.isna(tempo_posicao):
-        tempo_posicao = 0
-
-    if (
-        qtd_alertas >= 3
-        or risco_lpp == "muito_alto"
-        or risco_clinico in {"muito_alto", "critico", "crítico"}
-    ):
-        return "Crítica"
-
-    if (
-        qtd_alertas == 2
-        or risco_lpp == "alto"
-        or risco_clinico == "alto"
-        or tempo_posicao >= 180
-    ):
-        return "Alta"
-
-    if (
-        qtd_alertas == 1
-        or risco_lpp == "moderado"
-        or risco_clinico == "moderado"
-        or tempo_posicao >= 120
-    ):
-        return "Moderada"
-
-    return "Baixa"
-
-
-def prioridade_score(nivel):
-    return {
-        "Crítica": 4,
-        "Alta": 3,
-        "Moderada": 2,
-        "Baixa": 1,
-    }.get(nivel, 0)
-
-
-def listar_motivos(row):
-    motivos = []
-
-    mapa_alertas = [
-        ("alerta_fc", "Frequência cardíaca"),
-        ("alerta_spo2", "Saturação de O₂"),
-        ("alerta_temp", "Temperatura"),
-        ("alerta_lactato", "Lactato"),
-        ("alerta_hemodinamico", "Instabilidade hemodinâmica"),
-        ("alerta_renal", "Função renal"),
-    ]
-
-    for coluna, nome in mapa_alertas:
-        if coluna in row.index and normalizar_bool(row[coluna]):
-            motivos.append(nome)
-
-    risco_lpp = str(row.get("nivel_risco_LPP", "")).strip().lower()
-
-    if risco_lpp in {"alto", "muito_alto"}:
-        motivos.append(
-            "Risco de LPP " +
-            ("muito alto" if risco_lpp == "muito_alto" else "alto")
-        )
-
-    tempo = pd.to_numeric(
-        row.get("tempo_posicao_atual_min", None),
-        errors="coerce",
-    )
-
-    if pd.notna(tempo) and tempo >= 120:
-        motivos.append("Tempo prolongado na mesma posição")
-
-    if not motivos:
-        motivos.append("Sem alerta ativo relevante")
-
-    return motivos
 
 
 # ============================================================
-# CARREGAMENTO DOS DADOS
+# CARREGAMENTO DAS BASES
 # ============================================================
 
+# Base clínica
 try:
-    df = load_data().copy()
+    df_clinico = load_data().copy()
 except Exception as e:
-    st.error("Não foi possível carregar os dados.")
+    st.error("Não foi possível carregar a base clínica.")
     st.exception(e)
     st.stop()
 
-if df.empty:
-    st.error("A base de dados está vazia.")
+if df_clinico.empty:
+    st.error("A base clínica está vazia.")
+    st.stop()
+
+
+# Base operacional
+caminho_operacional = localizar_base_operacional()
+
+if caminho_operacional is None:
+    st.error(
+        """
+        A base operacional não foi encontrada.
+
+        Coloque o arquivo **UTI_operacional.csv** dentro da pasta:
+
+        `data/UTI_operacional.csv`
+        """
+    )
+    st.stop()
+
+try:
+    df_op = carregar_operacional(str(caminho_operacional)).copy()
+except Exception as e:
+    st.error("Não foi possível carregar a base operacional.")
+    st.exception(e)
+    st.stop()
+
+if df_op.empty:
+    st.error("A base operacional está vazia.")
     st.stop()
 
 
 # ============================================================
-# PREPARAÇÃO DOS DADOS
+# PREPARAÇÃO TEMPORAL
 # ============================================================
 
-df["timestamp_dt"] = pd.to_datetime(
-    df["timestamp"],
-    errors="coerce",
-    dayfirst=True,
-)
+df_op["timestamp_dt"] = converter_data_hora(df_op["timestamp"])
 
-df_atual = (
-    df
-    .dropna(subset=["timestamp_dt"])
-    .sort_values("timestamp_dt")
-    .groupby("id_paciente", as_index=False)
-    .tail(1)
-    .copy()
-)
+if "timestamp" in df_clinico.columns:
+    df_clinico["timestamp_dt"] = converter_data_hora(
+        df_clinico["timestamp"]
+    )
 
-if df_atual.empty:
-    st.error("Não foi possível obter o estado atual dos pacientes.")
+df_op = df_op.dropna(subset=["timestamp_dt"]).sort_values("timestamp_dt")
+
+if df_op.empty:
+    st.error("Não foi possível interpretar as datas da base operacional.")
     st.stop()
 
 
 # ============================================================
-# ALERTAS CLÍNICOS
+# REGISTRO OPERACIONAL ATUAL
 # ============================================================
 
-colunas_alerta = [
-    c for c in [
-        "alerta_fc",
-        "alerta_spo2",
-        "alerta_temp",
-        "alerta_lactato",
-        "alerta_hemodinamico",
-        "alerta_renal",
-    ]
-    if c in df_atual.columns
-]
+op_atual = df_op.iloc[-1]
 
-for coluna in colunas_alerta:
-    df_atual[coluna + "_bool"] = df_atual[coluna].apply(normalizar_bool)
+capacidade_total = int(op_atual["capacidade_total_leitos"])
+leitos_bloqueados = int(op_atual["leitos_bloqueados"])
+leitos_operacionais = int(op_atual["leitos_operacionais"])
+pacientes_internados = int(op_atual["pacientes_internados"])
+taxa_ocupacao = float(op_atual["taxa_ocupacao_pct"])
+enfermeiros_turno = int(op_atual["enfermeiros_turno"])
+pacientes_enfermeiro = float(op_atual["pacientes_por_enfermeiro"])
 
-bool_cols = [c + "_bool" for c in colunas_alerta]
 
-if bool_cols:
-    df_atual["quantidade_alertas_calc"] = (
-        df_atual[bool_cols]
-        .sum(axis=1)
-        .astype(int)
+# ============================================================
+# ÚLTIMO REGISTRO CLÍNICO DE CADA PACIENTE
+# ============================================================
+
+if (
+    "timestamp_dt" in df_clinico.columns
+    and df_clinico["timestamp_dt"].notna().any()
+):
+    df_pacientes = (
+        df_clinico
+        .dropna(subset=["timestamp_dt"])
+        .sort_values("timestamp_dt")
+        .groupby("id_paciente", as_index=False)
+        .tail(1)
+        .copy()
     )
 else:
-    df_atual["quantidade_alertas_calc"] = 0
+    df_pacientes = (
+        df_clinico
+        .drop_duplicates(
+            subset="id_paciente",
+            keep="last",
+        )
+        .copy()
+    )
 
 
-# Alerta preventivo de reposicionamento
-if "tempo_posicao_atual_min" in df_atual.columns:
-    df_atual["alerta_reposicionamento"] = (
+# ============================================================
+# MÉTRICAS DERIVADAS
+# ============================================================
+
+if "tempo_internacao_horas" in df_pacientes.columns:
+    permanencia_media_dias = (
         pd.to_numeric(
-            df_atual["tempo_posicao_atual_min"],
+            df_pacientes["tempo_internacao_horas"],
             errors="coerce",
         )
-        >= 120
+        .mean()
+        / 24
+    )
+elif "dia_internacao" in df_pacientes.columns:
+    permanencia_media_dias = (
+        pd.to_numeric(
+            df_pacientes["dia_internacao"],
+            errors="coerce",
+        )
+        .mean()
     )
 else:
-    df_atual["alerta_reposicionamento"] = False
+    permanencia_media_dias = float("nan")
 
 
-# Prioridade integrada
-df_atual["prioridade"] = df_atual.apply(
-    nivel_prioridade,
-    axis=1,
-)
+# Admissões nas últimas 48h da base operacional
+data_limite_48h = df_op["timestamp_dt"].max() - pd.Timedelta(hours=48)
 
-df_atual["prioridade_score"] = (
-    df_atual["prioridade"]
-    .map(prioridade_score)
-)
-
-
-# ============================================================
-# KPIs
-# ============================================================
-
-total_pacientes = df_atual["id_paciente"].nunique()
-
-pacientes_com_alerta = int(
-    (
-        (df_atual["quantidade_alertas_calc"] > 0)
-        | df_atual["alerta_reposicionamento"]
-        | df_atual["prioridade"].isin(["Crítica", "Alta"])
-    ).sum()
-)
-
-alertas_clinicos_ativos = int(
-    df_atual["quantidade_alertas_calc"].sum()
-)
-
-prioridade_critica = int(
-    (df_atual["prioridade"] == "Crítica").sum()
-)
-
-reposicionamentos = int(
-    df_atual["alerta_reposicionamento"].sum()
+admissoes_48h = int(
+    pd.to_numeric(
+        df_op.loc[
+            df_op["timestamp_dt"] >= data_limite_48h,
+            "admissoes_turno",
+        ],
+        errors="coerce",
+    )
+    .fillna(0)
+    .sum()
 )
 
 
@@ -439,22 +382,21 @@ reposicionamentos = int(
 
 st.markdown(
     """
-    <div class="alert-header">
-        <div class="alert-header-left">
-            <div class="alert-header-icon">!</div>
+    <div class="op-header">
+        <div class="op-header-left">
+            <div class="op-header-icon">▦</div>
             <div>
-                <div class="alert-title">Central de Alertas</div>
-                <div class="alert-subtitle">
-                    Priorização integrada de alertas clínicos,
-                    risco de LPP e necessidade de reposicionamento.
+                <div class="op-title">Gestão Operacional da UTI</div>
+                <div class="op-subtitle">
+                    Visão integrada de capacidade, fluxo de pacientes,
+                    permanência e carga assistencial.
                 </div>
             </div>
         </div>
-        <div class="alert-info">
-            <b>Priorização acadêmica</b><br>
-            A classificação apresentada combina variáveis simuladas
-            e regras conceituais do protótipo, não substituindo
-            protocolos assistenciais validados.
+        <div class="op-info">
+            <b>Dados operacionais simulados</b><br>
+            Esta página combina a base clínica do protótipo com
+            indicadores operacionais sintéticos da UTI.
         </div>
     </div>
     """,
@@ -467,11 +409,11 @@ st.markdown(
 # ============================================================
 
 st.markdown(
-    '<div class="section-title">Situação atual</div>',
+    '<div class="op-section-title">Situação operacional atual</div>',
     unsafe_allow_html=True,
 )
 st.markdown(
-    '<div class="section-subtitle">Visão consolidada do último registro disponível de cada paciente.</div>',
+    '<div class="op-section-subtitle">Indicadores referentes ao período mais recente disponível nas bases simuladas.</div>',
     unsafe_allow_html=True,
 )
 
@@ -479,96 +421,304 @@ k1, k2, k3, k4 = st.columns(4)
 
 with k1:
     st.metric(
-        "Pacientes com atenção",
-        f"{pacientes_com_alerta}",
-        help=f"De {total_pacientes} pacientes monitorados.",
+        "Ocupação da UTI",
+        f"{taxa_ocupacao:.1f}%",
+        help=(
+            f"{pacientes_internados} pacientes para "
+            f"{leitos_operacionais} leitos operacionais."
+        ),
     )
 
 with k2:
-    st.metric(
-        "Alertas clínicos ativos",
-        f"{alertas_clinicos_ativos}",
-    )
+    if pd.notna(permanencia_media_dias):
+        st.metric(
+            "Permanência média",
+            f"{permanencia_media_dias:.1f} dias",
+        )
+    else:
+        st.metric(
+            "Permanência média",
+            "N/D",
+        )
 
 with k3:
     st.metric(
-        "Prioridade crítica",
-        f"{prioridade_critica}",
+        "Pacientes / enfermeiro",
+        f"{pacientes_enfermeiro:.1f}",
+        help=(
+            f"{pacientes_internados} pacientes e "
+            f"{enfermeiros_turno} enfermeiros no turno atual."
+        ),
     )
 
 with k4:
     st.metric(
-        "Reposicionamento",
-        f"{reposicionamentos}",
-        help="Pacientes com 120 minutos ou mais na posição atual.",
+        "Admissões nas últimas 48h",
+        f"{admissoes_48h}",
     )
 
 
-# ============================================================
-# DISTRIBUIÇÃO + TIPOS DE ALERTA
-# ============================================================
-
 st.write("")
 
-c1, c2 = st.columns(
-    [0.78, 1.22],
+
+# ============================================================
+# OCUPAÇÃO + CARGA POR TURNO
+# ============================================================
+
+col_ocupacao, col_turno = st.columns(
+    [1.15, 0.85],
     gap="large",
 )
 
 
 # ------------------------------------------------------------
-# DISTRIBUIÇÃO DE PRIORIDADE
+# EVOLUÇÃO DA OCUPAÇÃO
 # ------------------------------------------------------------
 
-with c1:
+with col_ocupacao:
 
     st.markdown(
-        '<div class="section-title">Distribuição por prioridade</div>',
+        '<div class="op-section-title">Ocupação ao longo do tempo</div>',
         unsafe_allow_html=True,
     )
 
-    ordem = [
-        "Crítica",
-        "Alta",
-        "Moderada",
-        "Baixa",
-    ]
-
-    cores_prioridade = {
-        "Crítica": "#E5484D",
-        "Alta": "#F09A3E",
-        "Moderada": "#E1C24F",
-        "Baixa": "#159A7A",
-    }
-
-    dist = (
-        df_atual["prioridade"]
-        .value_counts()
-        .reindex(ordem, fill_value=0)
-        .reset_index()
+    ocupacao_diaria = (
+        df_op
+        .assign(
+            dia=df_op["timestamp_dt"].dt.date
+        )
+        .groupby("dia", as_index=False)
+        .agg(
+            ocupacao_media=("taxa_ocupacao_pct", "mean"),
+            ocupacao_maxima=("taxa_ocupacao_pct", "max"),
+        )
     )
 
-    dist.columns = [
-        "Prioridade",
-        "Pacientes",
-    ]
+    ocupacao_diaria["dia_label"] = pd.to_datetime(
+        ocupacao_diaria["dia"]
+    ).dt.strftime("%d/%m")
 
-    fig_dist = go.Figure(
+    fig_ocupacao = go.Figure()
+
+    fig_ocupacao.add_trace(
+        go.Scatter(
+            x=ocupacao_diaria["dia_label"],
+            y=ocupacao_diaria["ocupacao_media"],
+            mode="lines+markers",
+            name="Ocupação média",
+            line=dict(
+                color="#2B84C5",
+                width=3,
+            ),
+            marker=dict(
+                size=7,
+                color="#2B84C5",
+                line=dict(
+                    color="#FFFFFF",
+                    width=1,
+                ),
+            ),
+            fill="tozeroy",
+            fillcolor="rgba(43,132,197,.10)",
+            hovertemplate=(
+                "<b>%{x}</b>"
+                "<br>Ocupação média: %{y:.1f}%"
+                "<extra></extra>"
+            ),
+        )
+    )
+
+    fig_ocupacao.add_hline(
+        y=90,
+        line_dash="dash",
+        line_color="#E8A045",
+        annotation_text="90%",
+        annotation_position="top right",
+    )
+
+    fig_ocupacao.update_layout(
+        xaxis_title="Data",
+        yaxis_title="Ocupação (%)",
+        showlegend=False,
+    )
+
+    fig_ocupacao.update_yaxes(
+        range=[
+            0,
+            max(
+                105,
+                float(
+                    ocupacao_diaria["ocupacao_maxima"].max()
+                )
+                + 5,
+            ),
+        ],
+        gridcolor="#E7EEF3",
+        zeroline=False,
+    )
+
+    fig_ocupacao.update_xaxes(
+        showgrid=False,
+    )
+
+    tema_plotly(
+        fig_ocupacao,
+        altura=365,
+    )
+
+    st.plotly_chart(
+        fig_ocupacao,
+        use_container_width=True,
+        config={"displayModeBar": False},
+    )
+
+
+# ------------------------------------------------------------
+# CARGA POR TURNO
+# ------------------------------------------------------------
+
+with col_turno:
+
+    st.markdown(
+        '<div class="op-section-title">Carga assistencial por turno</div>',
+        unsafe_allow_html=True,
+    )
+
+    carga_turno = (
+        df_op
+        .groupby("turno", as_index=False)
+        .agg(
+            pacientes_por_enfermeiro=("pacientes_por_enfermeiro", "mean")
+        )
+    )
+
+    ordem_turnos = ["Manhã", "Tarde", "Noite"]
+
+    carga_turno["turno"] = pd.Categorical(
+        carga_turno["turno"],
+        categories=ordem_turnos,
+        ordered=True,
+    )
+
+    carga_turno = carga_turno.sort_values("turno")
+
+    fig_turno = px.bar(
+        carga_turno,
+        x="turno",
+        y="pacientes_por_enfermeiro",
+        labels={
+            "turno": "Turno",
+            "pacientes_por_enfermeiro": "Pacientes / enfermeiro",
+        },
+    )
+
+    fig_turno.update_traces(
+        marker_color="#4B8ED1",
+        marker_line_width=0,
+        text=[
+            f"{v:.1f}"
+            for v in carga_turno["pacientes_por_enfermeiro"]
+        ],
+        textposition="outside",
+        hovertemplate=(
+            "<b>%{x}</b>"
+            "<br>Pacientes/enfermeiro: %{y:.1f}"
+            "<extra></extra>"
+        ),
+    )
+
+    fig_turno.update_layout(
+        showlegend=False,
+        xaxis_title="Turno",
+        yaxis_title="Pacientes / enfermeiro",
+    )
+
+    fig_turno.update_yaxes(
+        gridcolor="#E7EEF3",
+        zeroline=False,
+    )
+
+    fig_turno.update_xaxes(
+        showgrid=False,
+    )
+
+    tema_plotly(
+        fig_turno,
+        altura=365,
+    )
+
+    st.plotly_chart(
+        fig_turno,
+        use_container_width=True,
+        config={"displayModeBar": False},
+    )
+
+
+# ============================================================
+# CAPACIDADE ATUAL + FLUXO
+# ============================================================
+
+st.write("")
+
+col_leitos, col_fluxo = st.columns(
+    [0.82, 1.18],
+    gap="large",
+)
+
+
+# ------------------------------------------------------------
+# DISTRIBUIÇÃO DOS LEITOS
+# ------------------------------------------------------------
+
+with col_leitos:
+
+    st.markdown(
+        '<div class="op-section-title">Capacidade atual dos leitos</div>',
+        unsafe_allow_html=True,
+    )
+
+    leitos_disponiveis = max(
+        leitos_operacionais - pacientes_internados,
+        0,
+    )
+
+    ocupados_reais = min(
+        pacientes_internados,
+        leitos_operacionais,
+    )
+
+    df_leitos = pd.DataFrame(
+        {
+            "Status": [
+                "Ocupados",
+                "Disponíveis",
+                "Bloqueados",
+            ],
+            "Leitos": [
+                ocupados_reais,
+                leitos_disponiveis,
+                leitos_bloqueados,
+            ],
+        }
+    )
+
+    fig_leitos = go.Figure(
         data=[
             go.Pie(
-                labels=dist["Prioridade"],
-                values=dist["Pacientes"],
-                hole=0.64,
+                labels=df_leitos["Status"],
+                values=df_leitos["Leitos"],
+                hole=0.62,
                 marker=dict(
                     colors=[
-                        cores_prioridade[p]
-                        for p in dist["Prioridade"]
+                        "#79AEE3",
+                        "#BFE5D6",
+                        "#E6D7F3",
                     ]
                 ),
                 textinfo="none",
                 hovertemplate=(
                     "<b>%{label}</b>"
-                    "<br>%{value} paciente(s)"
+                    "<br>%{value} leito(s)"
                     "<br>%{percent}"
                     "<extra></extra>"
                 ),
@@ -576,10 +726,10 @@ with c1:
         ]
     )
 
-    fig_dist.add_annotation(
+    fig_leitos.add_annotation(
         x=0.5,
-        y=0.55,
-        text=f"<b>{total_pacientes}</b>",
+        y=0.54,
+        text=f"<b>{capacidade_total}</b>",
         showarrow=False,
         font=dict(
             size=28,
@@ -587,489 +737,392 @@ with c1:
         ),
     )
 
-    fig_dist.add_annotation(
+    fig_leitos.add_annotation(
         x=0.5,
         y=0.42,
-        text="pacientes",
+        text="leitos",
         showarrow=False,
         font=dict(
             size=14,
-            color="#718A9B",
+            color="#6C8597",
         ),
     )
 
-    fig_dist.update_layout(
+    fig_leitos.update_layout(
+        showlegend=True,
         legend=dict(
             orientation="v",
             yanchor="middle",
             y=0.5,
             xanchor="left",
-            x=1.02,
+            x=1.03,
         ),
     )
 
     tema_plotly(
-        fig_dist,
+        fig_leitos,
         altura=350,
     )
 
     st.plotly_chart(
-        fig_dist,
+        fig_leitos,
         use_container_width=True,
         config={"displayModeBar": False},
     )
 
 
 # ------------------------------------------------------------
-# TIPOS DE ALERTA
+# ADMISSÕES E ALTAS
 # ------------------------------------------------------------
 
-with c2:
+with col_fluxo:
 
     st.markdown(
-        '<div class="section-title">Alertas mais frequentes</div>',
+        '<div class="op-section-title">Fluxo de pacientes</div>',
         unsafe_allow_html=True,
     )
 
-    mapa_nomes = {
-        "alerta_fc": "Frequência cardíaca",
-        "alerta_spo2": "Saturação de O₂",
-        "alerta_temp": "Temperatura",
-        "alerta_lactato": "Lactato",
-        "alerta_hemodinamico": "Hemodinâmico",
-        "alerta_renal": "Renal",
-    }
-
-    dados_alerta = []
-
-    for coluna in colunas_alerta:
-        dados_alerta.append(
-            {
-                "Tipo": mapa_nomes[coluna],
-                "Quantidade": int(
-                    df_atual[coluna + "_bool"].sum()
-                ),
-            }
+    fluxo_diario = (
+        df_op
+        .assign(
+            dia=df_op["timestamp_dt"].dt.date
         )
-
-    dados_alerta.append(
-        {
-            "Tipo": "Reposicionamento",
-            "Quantidade": reposicionamentos,
-        }
-    )
-
-    df_tipos = (
-        pd.DataFrame(dados_alerta)
-        .sort_values(
-            "Quantidade",
-            ascending=True,
+        .groupby("dia", as_index=False)
+        .agg(
+            Admissões=("admissoes_turno", "sum"),
+            Altas=("altas_turno", "sum"),
         )
     )
 
-    fig_tipos = px.bar(
-        df_tipos,
-        x="Quantidade",
-        y="Tipo",
-        orientation="h",
+    fluxo_diario["Data"] = pd.to_datetime(
+        fluxo_diario["dia"]
+    ).dt.strftime("%d/%m")
+
+    fluxo_long = fluxo_diario.melt(
+        id_vars="Data",
+        value_vars=[
+            "Admissões",
+            "Altas",
+        ],
+        var_name="Movimento",
+        value_name="Pacientes",
     )
 
-    fig_tipos.update_traces(
-        marker_color="#D97863",
+    fig_fluxo = px.bar(
+        fluxo_long,
+        x="Data",
+        y="Pacientes",
+        color="Movimento",
+        barmode="group",
+        color_discrete_map={
+            "Admissões": "#5B8FD5",
+            "Altas": "#52B8A0",
+        },
+    )
+
+    fig_fluxo.update_traces(
         marker_line_width=0,
-        text=df_tipos["Quantidade"],
-        textposition="outside",
         hovertemplate=(
-            "<b>%{y}</b>"
-            "<br>%{x} ocorrência(s)"
+            "<b>%{x}</b>"
+            "<br>%{fullData.name}: %{y}"
             "<extra></extra>"
         ),
     )
 
-    fig_tipos.update_layout(
-        showlegend=False,
-        xaxis_title="Ocorrências",
-        yaxis_title="",
+    fig_fluxo.update_layout(
+        xaxis_title="Data",
+        yaxis_title="Número de pacientes",
+        legend_title_text="",
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.01,
+            xanchor="left",
+            x=0,
+        ),
     )
 
-    fig_tipos.update_xaxes(
+    fig_fluxo.update_yaxes(
         gridcolor="#E7EEF3",
         zeroline=False,
         dtick=1,
     )
 
-    fig_tipos.update_yaxes(
+    fig_fluxo.update_xaxes(
         showgrid=False,
     )
 
     tema_plotly(
-        fig_tipos,
+        fig_fluxo,
         altura=350,
     )
 
     st.plotly_chart(
-        fig_tipos,
+        fig_fluxo,
         use_container_width=True,
         config={"displayModeBar": False},
     )
 
 
 # ============================================================
-# FILTROS
+# PERMANÊNCIA + LEITOS BLOQUEADOS
+# ============================================================
+
+st.write("")
+
+col_permanencia, col_diag = st.columns(
+    2,
+    gap="large",
+)
+
+
+# ------------------------------------------------------------
+# TEMPO DE PERMANÊNCIA
+# ------------------------------------------------------------
+
+with col_permanencia:
+
+    st.markdown(
+        '<div class="op-section-title">Tempo de permanência dos pacientes</div>',
+        unsafe_allow_html=True,
+    )
+
+    if "tempo_internacao_horas" in df_pacientes.columns:
+        permanencia = (
+            pd.to_numeric(
+                df_pacientes["tempo_internacao_horas"],
+                errors="coerce",
+            )
+            / 24
+        )
+    else:
+        permanencia = pd.to_numeric(
+            df_pacientes.get(
+                "dia_internacao",
+                pd.Series(dtype=float),
+            ),
+            errors="coerce",
+        )
+
+    permanencia = permanencia.dropna()
+
+    if not permanencia.empty:
+
+        faixas = pd.cut(
+            permanencia,
+            bins=[
+                -float("inf"),
+                3,
+                7,
+                14,
+                float("inf"),
+            ],
+            labels=[
+                "Até 3 dias",
+                "4–7 dias",
+                "8–14 dias",
+                "> 14 dias",
+            ],
+        )
+
+        dist_perm = (
+            faixas
+            .value_counts(sort=False)
+            .reset_index()
+        )
+
+        dist_perm.columns = [
+            "Faixa",
+            "Pacientes",
+        ]
+
+        fig_perm = px.bar(
+            dist_perm,
+            x="Faixa",
+            y="Pacientes",
+        )
+
+        fig_perm.update_traces(
+            marker_color="#80A9D8",
+            marker_line_width=0,
+            text=dist_perm["Pacientes"],
+            textposition="outside",
+            hovertemplate=(
+                "<b>%{x}</b>"
+                "<br>%{y} paciente(s)"
+                "<extra></extra>"
+            ),
+        )
+
+        fig_perm.update_layout(
+            xaxis_title="Tempo de permanência",
+            yaxis_title="Pacientes",
+            showlegend=False,
+        )
+
+        fig_perm.update_yaxes(
+            gridcolor="#E7EEF3",
+            zeroline=False,
+            dtick=1,
+        )
+
+        fig_perm.update_xaxes(
+            showgrid=False,
+        )
+
+        tema_plotly(
+            fig_perm,
+            altura=335,
+        )
+
+        st.plotly_chart(
+            fig_perm,
+            use_container_width=True,
+            config={"displayModeBar": False},
+        )
+
+    else:
+        st.info(
+            "Não há informação suficiente para calcular o tempo de permanência."
+        )
+
+
+# ------------------------------------------------------------
+# LEITOS BLOQUEADOS AO LONGO DO PERÍODO
+# ------------------------------------------------------------
+
+with col_diag:
+
+    st.markdown(
+        '<div class="op-section-title">Leitos bloqueados ao longo do período</div>',
+        unsafe_allow_html=True,
+    )
+
+    if (
+        "leitos_bloqueados" in df_op.columns
+        and "timestamp_dt" in df_op.columns
+    ):
+
+        bloqueios = (
+            df_op
+            .dropna(subset=["timestamp_dt"])
+            .assign(
+                dia=df_op["timestamp_dt"].dt.date
+            )
+            .groupby("dia", as_index=False)
+            .agg(
+                leitos_bloqueados=("leitos_bloqueados", "max")
+            )
+        )
+
+        bloqueios["Data"] = pd.to_datetime(
+            bloqueios["dia"]
+        ).dt.strftime("%d/%m")
+
+        fig_bloqueios = px.bar(
+            bloqueios,
+            x="Data",
+            y="leitos_bloqueados",
+        )
+
+        fig_bloqueios.update_traces(
+            marker_color="#9A88C8",
+            marker_line_width=0,
+            text=bloqueios["leitos_bloqueados"],
+            textposition="outside",
+            hovertemplate=(
+                "<b>%{x}</b>"
+                "<br>Leitos bloqueados: %{y}"
+                "<extra></extra>"
+            ),
+        )
+
+        fig_bloqueios.update_layout(
+            xaxis_title="Data",
+            yaxis_title="Leitos bloqueados",
+            showlegend=False,
+        )
+
+        fig_bloqueios.update_yaxes(
+            gridcolor="#E7EEF3",
+            zeroline=False,
+            dtick=1,
+        )
+
+        fig_bloqueios.update_xaxes(
+            showgrid=False,
+        )
+
+        tema_plotly(
+            fig_bloqueios,
+            altura=335,
+        )
+
+        st.plotly_chart(
+            fig_bloqueios,
+            use_container_width=True,
+            config={"displayModeBar": False},
+        )
+
+        media_bloqueados = pd.to_numeric(
+            bloqueios["leitos_bloqueados"],
+            errors="coerce",
+        ).mean()
+
+        pico_bloqueados = pd.to_numeric(
+            bloqueios["leitos_bloqueados"],
+            errors="coerce",
+        ).max()
+
+        st.caption(
+            f"Média de {media_bloqueados:.1f} leito(s) bloqueado(s) por dia; "
+            f"pico de {pico_bloqueados:.0f}."
+        )
+
+    else:
+        st.info(
+            "A base operacional não possui informação suficiente "
+            "sobre leitos bloqueados."
+        )
+
+
+# ============================================================
+# RESUMO OPERACIONAL
 # ============================================================
 
 st.write("")
 
 st.markdown(
-    '<div class="section-title">Fila de priorização</div>',
-    unsafe_allow_html=True,
-)
-st.markdown(
-    '<div class="section-subtitle">Pacientes ordenados pela prioridade conceitual calculada no protótipo.</div>',
+    '<div class="op-section-title">Resumo da capacidade assistencial</div>',
     unsafe_allow_html=True,
 )
 
-f1, f2 = st.columns(
-    [0.7, 1.3],
-)
-
-with f1:
-    filtro_prioridade = st.multiselect(
-        "Prioridade",
-        options=[
-            "Crítica",
-            "Alta",
-            "Moderada",
-            "Baixa",
-        ],
-        default=[
-            "Crítica",
-            "Alta",
-            "Moderada",
-        ],
-    )
-
-with f2:
-    somente_alertas = st.toggle(
-        "Mostrar somente pacientes com algum alerta ativo",
-        value=True,
-    )
-
-
-df_fila = df_atual.copy()
-
-if filtro_prioridade:
-    df_fila = df_fila[
-        df_fila["prioridade"].isin(
-            filtro_prioridade
-        )
-    ]
-
-if somente_alertas:
-    df_fila = df_fila[
-        (df_fila["quantidade_alertas_calc"] > 0)
-        | df_fila["alerta_reposicionamento"]
-        | df_fila["prioridade"].isin(["Crítica", "Alta"])
-    ]
-
-df_fila = df_fila.sort_values(
-    [
-        "prioridade_score",
-        "quantidade_alertas_calc",
-        "risco_LPP"
-        if "risco_LPP" in df_fila.columns
-        else "id_paciente",
-    ],
-    ascending=[
-        False,
-        False,
-        False,
-    ],
-)
-
-
-# ============================================================
-# TABELA DE PRIORIZAÇÃO
-# ============================================================
-
-tabela = pd.DataFrame()
-
-tabela["Paciente"] = (
-    "Paciente " +
-    df_fila["id_paciente"].astype(str)
-)
-
-tabela["Prioridade"] = df_fila["prioridade"]
-
-tabela["Alertas clínicos"] = (
-    df_fila["quantidade_alertas_calc"]
-)
-
-if "nivel_risco_clinico" in df_fila.columns:
-    tabela["Risco clínico"] = (
-        df_fila["nivel_risco_clinico"]
-        .astype(str)
-        .str.replace("_", " ")
-        .str.title()
-    )
-
-if "nivel_risco_LPP" in df_fila.columns:
-    tabela["Risco LPP"] = (
-        df_fila["nivel_risco_LPP"]
-        .astype(str)
-        .str.replace("_", " ")
-        .str.title()
-    )
-
-if "tempo_posicao_atual_min" in df_fila.columns:
-    tabela["Tempo na posição"] = (
-        pd.to_numeric(
-            df_fila["tempo_posicao_atual_min"],
-            errors="coerce",
-        )
-        .round(0)
-        .astype("Int64")
-        .astype(str)
-        + " min"
-    )
-
-st.dataframe(
-    tabela,
-    use_container_width=True,
-    hide_index=True,
-    height=min(
-        480,
-        45 + len(tabela) * 38,
-    ),
-)
-
-
-# ============================================================
-# DETALHE DO PACIENTE
-# ============================================================
-
-st.write("")
-
-st.markdown(
-    '<div class="section-title">Detalhamento da prioridade</div>',
-    unsafe_allow_html=True,
-)
-
-ids_disponiveis = (
-    df_atual
-    .sort_values(
-        [
-            "prioridade_score",
-            "quantidade_alertas_calc",
-        ],
-        ascending=False,
-    )["id_paciente"]
-    .tolist()
-)
-
-paciente_escolhido = st.selectbox(
-    "Selecione o paciente",
-    options=ids_disponiveis,
-    format_func=lambda x: f"Paciente {x}",
-)
-
-registro = (
-    df_atual[
-        df_atual["id_paciente"] == paciente_escolhido
-    ]
-    .iloc[0]
-)
-
-motivos = listar_motivos(registro)
-
-m1, m2, m3, m4 = st.columns(4)
-
-with m1:
-    st.metric(
-        "Prioridade",
-        registro["prioridade"],
-    )
-
-with m2:
-    st.metric(
-        "Alertas clínicos",
-        int(registro["quantidade_alertas_calc"]),
-    )
-
-with m3:
-    if "score_risco_clinico" in registro.index:
-        valor = pd.to_numeric(
-            registro["score_risco_clinico"],
-            errors="coerce",
-        )
-
-        st.metric(
-            "Score clínico",
-            f"{valor:.0f}" if pd.notna(valor) else "N/D",
-        )
-    else:
-        st.metric(
-            "Score clínico",
-            "N/D",
-        )
-
-with m4:
-    if "risco_LPP" in registro.index:
-        valor = pd.to_numeric(
-            registro["risco_LPP"],
-            errors="coerce",
-        )
-
-        st.metric(
-            "Score LPP",
-            f"{valor:.0f}" if pd.notna(valor) else "N/D",
-        )
-    else:
-        st.metric(
-            "Score LPP",
-            "N/D",
-        )
-
-
-# ============================================================
-# MOTIVOS DO ALERTA
-# ============================================================
-
-st.markdown(
-    '<div class="section-subtitle" style="margin-top:16px;"><b>Motivos identificados</b></div>',
-    unsafe_allow_html=True,
-)
-
-for motivo in motivos:
+if taxa_ocupacao >= 90:
     st.markdown(
         f"""
-        <div class="priority-card">
-            <div class="priority-title">{motivo}</div>
-            <div class="priority-text">
-                Evento identificado a partir do registro mais recente
-                disponível na base simulada.
-            </div>
+        <div class="op-alert">
+            <b>Atenção à capacidade operacional.</b><br>
+            A ocupação atual é de <b>{taxa_ocupacao:.1f}%</b>,
+            com {pacientes_internados} pacientes e
+            {leitos_operacionais} leitos operacionais.
+            O indicador deve ser acompanhado em conjunto com a carga
+            assistencial e o fluxo de admissões e altas.
         </div>
         """,
         unsafe_allow_html=True,
     )
-
-
-# ============================================================
-# RESUMO DOS FATORES DE ATENÇÃO
-# ============================================================
-
-st.write("")
-
-st.markdown(
-    '<div class="section-title">Resumo dos fatores de atenção</div>',
-    unsafe_allow_html=True,
-)
-
-st.markdown(
-    """
-    <div class="section-subtitle">
-        Síntese dos elementos que sustentam a prioridade atual do paciente.
-        O acompanhamento temporal detalhado permanece na página de Monitoramento.
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
-resumo_fatores = []
-
-if int(registro["quantidade_alertas_calc"]) > 0:
-    resumo_fatores.append(
-        f"{int(registro['quantidade_alertas_calc'])} alerta(s) clínico(s) ativo(s)"
-    )
-
-if "nivel_risco_clinico" in registro.index:
-    valor = str(registro["nivel_risco_clinico"]).replace("_", " ").strip().title()
-    if valor and valor.lower() != "nan":
-        resumo_fatores.append(f"Risco clínico: {valor}")
-
-if "nivel_risco_LPP" in registro.index:
-    valor = str(registro["nivel_risco_LPP"]).replace("_", " ").strip().title()
-    if valor and valor.lower() != "nan":
-        resumo_fatores.append(f"Risco de LPP: {valor}")
-
-if "tempo_posicao_atual_min" in registro.index:
-    valor = pd.to_numeric(
-        registro["tempo_posicao_atual_min"],
-        errors="coerce",
-    )
-    if pd.notna(valor) and valor >= 120:
-        resumo_fatores.append(
-            f"Tempo na posição atual: {valor:.0f} min"
-        )
-
-if resumo_fatores:
-    for fator in resumo_fatores:
-        st.markdown(
-            f"""
-            <div class="priority-card">
-                <div class="priority-title">{fator}</div>
-                <div class="priority-text">
-                    Fator considerado na priorização conceitual do protótipo.
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
 else:
-    st.info(
-        "Não foram identificados fatores adicionais de atenção "
-        "no registro atual."
+    st.markdown(
+        f"""
+        <div class="op-good">
+            <b>Capacidade operacional dentro do cenário simulado.</b><br>
+            A ocupação atual é de <b>{taxa_ocupacao:.1f}%</b>,
+            com {pacientes_internados} pacientes e
+            {leitos_operacionais} leitos operacionais.
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
-
-
-# ============================================================
-# ORIENTAÇÃO CONCEITUAL
-# ============================================================
-
-st.write("")
-
-st.markdown(
-    '<div class="section-title">Orientação de priorização</div>',
-    unsafe_allow_html=True,
-)
-
-prioridade = registro["prioridade"]
-
-if prioridade == "Crítica":
-    texto = (
-        "O paciente apresenta combinação de fatores classificada como "
-        "prioridade crítica pelo protótipo. Recomenda-se destacar o caso "
-        "na fila de avaliação e verificar os fatores responsáveis pelos "
-        "alertas ativos."
-    )
-elif prioridade == "Alta":
-    texto = (
-        "O paciente apresenta fatores que justificam atenção prioritária. "
-        "A equipe pode revisar os alertas ativos, a tendência clínica e "
-        "as medidas preventivas de LPP."
-    )
-elif prioridade == "Moderada":
-    texto = (
-        "O paciente apresenta sinais que merecem acompanhamento. "
-        "A central mantém o caso visível para favorecer intervenção "
-        "preventiva antes de uma possível piora."
-    )
-else:
-    texto = (
-        "No registro atual, o paciente apresenta baixa prioridade "
-        "na regra conceitual utilizada pelo protótipo, permanecendo "
-        "em monitoramento."
-    )
-
-st.markdown(
-    f"""
-    <div class="recommendation">
-        {texto}
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
 
 
 # ============================================================
@@ -1082,40 +1135,26 @@ a1, a2 = st.columns(2)
 
 with a1:
     st.page_link(
-        "pages/2_Monitoramento_Clinico.py",
-        label="Abrir Monitoramento Clínico",
+        "pages/1_Dashboard_Geral.py",
+        label="Voltar à Visão Geral",
         use_container_width=True,
     )
 
 with a2:
     st.page_link(
-        "pages/3_Gestao_LPP.py",
-        label="Abrir Gestão de LPP",
+        "pages/7_Lean_Healthcare.py",
+        label="Ver Lean Healthcare",
         use_container_width=True,
     )
 
 
 # ============================================================
-# LEGENDA E AVISO
+# AVISO FINAL
 # ============================================================
 
-st.write("")
-
-st.markdown(
-    """
-    <div>
-        <span class="legend-pill pill-critical">Crítica</span>
-        <span class="legend-pill pill-high">Alta</span>
-        <span class="legend-pill pill-moderate">Moderada</span>
-        <span class="legend-pill pill-low">Baixa</span>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
 st.caption(
-    "Protótipo acadêmico com dados simulados. A classificação de prioridade "
-    "é uma regra conceitual desenvolvida para demonstrar a integração de alertas "
-    "e não substitui julgamento clínico, protocolos institucionais ou sistemas "
-    "de apoio à decisão validados."
+    "Protótipo acadêmico com dados simulados. "
+    "Indicadores de capacidade, dimensionamento da equipe, admissões e altas "
+    "foram construídos para fins de demonstração conceitual e não devem ser "
+    "interpretados como parâmetros assistenciais reais."
 )
