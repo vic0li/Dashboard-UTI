@@ -350,67 +350,34 @@ else:
         )
 
 
-# Prioridade elevada
-prioritarios = None
-
-for coluna in [
-    "classificacao_prioridade",
-    "nivel_risco_clinico",
-]:
-    if coluna in df_pacientes.columns:
-        serie = (
-            df_pacientes[coluna]
-            .astype(str)
-            .str.strip()
-            .str.lower()
-            .str.replace(" ", "_")
-        )
-
-        prioritarios = int(
-            serie.isin(
-                [
-                    "alta",
-                    "alto",
-                    "muito_alto",
-                    "muito_alta",
-                    "critico",
-                    "crítico",
-                    "critica",
-                    "crítica",
-                ]
-            ).sum()
-        )
-        break
-
-if prioritarios is None:
+# Prioridade elevada - fonte oficial: motor de risco
+if "classificacao_prioridade" in df_pacientes.columns:
+    serie_prioridade = (
+        df_pacientes["classificacao_prioridade"]
+        .astype(str)
+        .str.strip()
+        .str.lower()
+    )
+    prioritarios = int(
+        serie_prioridade.isin(["alta", "crítica", "critica"]).sum()
+    )
+else:
     prioritarios = 0
 
 
-# Risco de LPP elevado
+# Risco de LPP elevado - fonte oficial: motor de risco
 lpp_elevado = 0
 
-for coluna in [
-    "nivel_risco_LPP",
-    "classificacao_lpp",
-]:
-    if coluna in df_pacientes.columns:
-        serie = (
-            df_pacientes[coluna]
-            .astype(str)
-            .str.strip()
-            .str.lower()
-            .str.replace(" ", "_")
-        )
-
-        lpp_elevado = int(
-            serie.isin(
-                [
-                    "alto",
-                    "muito_alto",
-                ]
-            ).sum()
-        )
-        break
+if "classificacao_lpp" in df_pacientes.columns:
+    serie_lpp = (
+        df_pacientes["classificacao_lpp"]
+        .astype(str)
+        .str.strip()
+        .str.lower()
+    )
+    lpp_elevado = int(
+        serie_lpp.isin(["alto", "crítico", "critico"]).sum()
+    )
 
 
 # ============================================================
