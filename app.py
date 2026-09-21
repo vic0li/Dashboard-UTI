@@ -23,7 +23,7 @@ from utils.styling import aplicar_estilo, topo_produto, navegacao_topo, hero_hom
 
 st.set_page_config(
     page_title="UTI Intelligent Care",
-    page_icon="",
+    page_icon="🏥",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
