@@ -1,195 +1,14 @@
 import pandas as pd
 import numpy as np
 
-# ============================================================
-# SCORE CLÍNICO CONCEITUAL
-# ============================================================
-
-def calcular_score_clinico(df):
-
-    df = df.copy()
-
-
-    def score_fc(valor):
-
-        if pd.isna(valor):
-            return 0
-
-        if 60 <= valor <= 100:
-            return 0
-
-        elif 50 <= valor < 60 or 100 < valor <= 120:
-            return 10
-
-        else:
-            return 20
-
-
-    def score_spo2(valor):
-
-        if pd.isna(valor):
-            return 0
-
-        if valor >= 95:
-            return 0
-
-        elif valor >= 90:
-            return 10
-
-        else:
-            return 25
-
-
-    def score_temperatura(valor):
-
-        if pd.isna(valor):
-            return 0
-
-        if 36 <= valor <= 37.5:
-            return 0
-
-        elif 35 <= valor < 36 or 37.5 < valor <= 38.5:
-            return 10
-
-        else:
-            return 20
-
-
-    def score_lactato(valor):
-
-        if pd.isna(valor):
-            return 0
-
-        if valor < 2:
-            return 0
-
-        elif valor < 4:
-            return 15
-
-        else:
-            return 25
-
-
-    # ========================================================
-    # APLICAR SCORE
-    # ========================================================
-
-    if "frequencia_cardiaca" in df.columns:
-
-        df["score_fc"] = (
-            df["frequencia_cardiaca"]
-            .apply(score_fc)
-        )
-
-    else:
-
-        df["score_fc"] = 0
-
-
-    if "saturacao_O2" in df.columns:
-
-        df["score_spo2"] = (
-            df["saturacao_O2"]
-            .apply(score_spo2)
-        )
-
-    else:
-
-        df["score_spo2"] = 0
-
-
-    if "temperatura" in df.columns:
-
-        df["score_temperatura"] = (
-            df["temperatura"]
-            .apply(score_temperatura)
-        )
-
-    else:
-
-        df["score_temperatura"] = 0
-
-
-    if "lactato" in df.columns:
-
-        df["score_lactato"] = (
-            df["lactato"]
-            .apply(score_lactato)
-        )
-
-    else:
-
-        df["score_lactato"] = 0
-
-
-    # ========================================================
-    # SCORE TOTAL
-    # ========================================================
-
-    df["score_clinico"] = (
-
-        df["score_fc"]
-
-        +
-
-        df["score_spo2"]
-
-        +
-
-        df["score_temperatura"]
-
-        +
-
-        df["score_lactato"]
-    )
-
-
-    return df
-
-# ============================================================
-# CLASSIFICAÇÃO CLÍNICA
-# ============================================================
-
-def classificar_risco_clinico(df):
-
-    df = df.copy()
-
-
-    def classificar(score):
-
-        if score < 20:
-            return "Baixo"
-
-        elif score < 40:
-            return "Moderado"
-
-        elif score < 60:
-            return "Alto"
-
-        else:
-            return "Crítico"
-
-
-    df["classificacao_clinica"] = (
-        df["score_clinico"]
-        .apply(classificar)
-    )
-
-
-    return df
-
 
 # ============================================================
 # ESCALA DE BRADEN
-# AVALIAÇÃO CONVENCIONAL COMPLEMENTAR AO SCORE DINÂMICO DE LPP
 # ============================================================
 
 def calcular_braden(df):
-    """Calcula a pontuação total da Escala de Braden."""
-
     df = df.copy()
-
-    colunas_braden = [
+    colunas = [
         "braden_percepcao_sensorial",
         "braden_umidade",
         "braden_atividade",
@@ -198,492 +17,195 @@ def calcular_braden(df):
         "braden_friccao_cisalhamento",
     ]
 
-    if not all(coluna in df.columns for coluna in colunas_braden):
+    if not all(c in df.columns for c in colunas):
         df["braden_total"] = pd.NA
         return df
 
-    for coluna in colunas_braden:
-        df[coluna] = pd.to_numeric(
-            df[coluna],
-            errors="coerce",
-        )
+    for c in colunas:
+        df[c] = pd.to_numeric(df[c], errors="coerce")
 
-    for coluna in [
-        "braden_percepcao_sensorial",
-        "braden_umidade",
-        "braden_atividade",
-        "braden_mobilidade",
-        "braden_nutricao",
-    ]:
-        df[coluna] = df[coluna].clip(1, 4)
+    for c in colunas[:-1]:
+        df[c] = df[c].clip(1, 4)
+    df["braden_friccao_cisalhamento"] = df["braden_friccao_cisalhamento"].clip(1, 3)
 
-    df["braden_friccao_cisalhamento"] = (
-        df["braden_friccao_cisalhamento"]
-        .clip(1, 3)
-    )
-
-    df["braden_total"] = (
-        df[colunas_braden]
-        .sum(axis=1, min_count=len(colunas_braden))
-    )
-
+    df["braden_total"] = df[colunas].sum(axis=1, min_count=len(colunas))
     return df
 
 
 def classificar_braden(df):
-    """Classifica a pontuação total da Braden segundo a estratificação adotada no TCC."""
-
     df = df.copy()
 
-    def classificar(valor):
-
-        if pd.isna(valor):
+    def classificar(v):
+        if pd.isna(v):
             return "Não disponível"
-
-        if valor <= 9:
+        if v <= 9:
             return "Severo"
-
-        elif valor <= 12:
+        if v <= 12:
             return "Alto"
-
-        elif valor <= 14:
+        if v <= 14:
             return "Moderado"
-
-        elif valor <= 18:
+        if v <= 18:
             return "Leve"
+        return "Mínimo"
 
-        else:
-            return "Mínimo"
-
-    df["braden_classificacao"] = (
-        df["braden_total"]
-        .apply(classificar)
-    )
-
+    df["braden_classificacao"] = df["braden_total"].apply(classificar)
     return df
 
-# ============================================================
-# SCORE DE RISCO LPP
-# MODELO CONCEITUAL PARA DADOS SIMULADOS
-# ============================================================
 
 # ============================================================
+# MODELO INTEGRADO DE RISCO DE LPP — TCC, SEÇÃO 5.4
+# ============================================================
+
+def _componente_braden(s):
+    return np.select([s >= 19, s.between(13, 18), s <= 12], [0.0, 0.5, 1.0], default=np.nan)
+
+
+def _componente_internacao(s):
+    return np.select([s < 3, s.between(3, 6), s >= 7], [0.0, 0.5, 1.0], default=np.nan)
+
+
+def _componente_vasoativo(s):
+    texto = s.astype(str).str.strip().str.lower()
+    sim = texto.isin(["sim", "1", "true", "yes"])
+    nao = texto.isin(["não", "nao", "0", "false", "no"])
+    return np.select([nao, sim], [0.0, 1.0], default=np.nan)
+
+
+def _componente_mobilidade(s):
+    return np.select([s == 4, s.isin([2, 3]), s == 1], [0.0, 0.5, 1.0], default=np.nan)
+
+
+def _componente_posicao(s):
+    return np.select([s < 60, s.between(60, 120), s > 120], [0.0, 0.5, 1.0], default=np.nan)
+
+
+def _componente_reposicionamento(s):
+    return np.select([s >= 12, s.between(6, 11), s < 6], [0.0, 0.5, 1.0], default=np.nan)
+
+
+def _componente_equipe(s):
+    return np.select([s <= 2, (s > 2) & (s < 4), s >= 4], [0.0, 0.5, 1.0], default=np.nan)
+
+
+def _componente_ocupacao(s):
+    return np.select([s < 80, s.between(80, 90), s > 90], [0.0, 0.5, 1.0], default=np.nan)
+
 
 def calcular_score_lpp(df):
-
     df = df.copy()
 
+    requisitos = {
+        "comp_lpp_braden": ("braden_total", _componente_braden),
+        "comp_lpp_internacao": ("dia_internacao", _componente_internacao),
+        "comp_lpp_vasoativo": ("uso_drogas_vasoativas", _componente_vasoativo),
+        "comp_lpp_mobilidade": ("braden_mobilidade", _componente_mobilidade),
+        "comp_lpp_posicao": ("tempo_posicao_atual_min", _componente_posicao),
+        "comp_lpp_reposicionamento": ("mudancas_posicao_24h", _componente_reposicionamento),
+        "comp_lpp_equipe": ("pacientes_por_enfermeiro", _componente_equipe),
+        "comp_lpp_ocupacao": ("taxa_ocupacao_pct", _componente_ocupacao),
+    }
 
-    score_total = pd.Series(
-        0,
-        index=df.index,
-        dtype=float
-    )
-
-
-    # ========================================================
-    # TEMPO NA POSIÇÃO
-    # ========================================================
-
-    if "tempo_posicao_atual_min" in df.columns:
-
-        tempo = df["tempo_posicao_atual_min"]
-
-        score_tempo = np.select(
-
-            [
-                tempo < 60,
-                (tempo >= 60) & (tempo < 120),
-                (tempo >= 120) & (tempo < 180),
-                tempo >= 180
-            ],
-
-            [
-                0,
-                10,
-                20,
-                30
-            ],
-
-            default=0
-        )
-
-        df["score_lpp_tempo"] = score_tempo
-        score_total += score_tempo
-
-
-    # ========================================================
-    # PRESSÃO DO COLCHÃO
-    # ========================================================
-
-    if "pressao_media_colchao" in df.columns:
-
-        pressao = df["pressao_media_colchao"]
-
-        score_pressao = np.select(
-
-            [
-                pressao < 30,
-                (pressao >= 30) & (pressao < 50),
-                pressao >= 50
-            ],
-
-            [
-                0,
-                15,
-                25
-            ],
-
-            default=0
-        )
-
-        df["score_lpp_pressao"] = score_pressao
-        score_total += score_pressao
-
-
-    # ========================================================
-    # MUDANÇAS DE POSIÇÃO
-    # ========================================================
-
-    if "mudancas_posicao_24h" in df.columns:
-
-        mudancas = df["mudancas_posicao_24h"]
-
-        score_mudancas = np.select(
-
-            [
-                mudancas >= 8,
-                (mudancas >= 4) & (mudancas < 8),
-                mudancas < 4
-            ],
-
-            [
-                0,
-                10,
-                20
-            ],
-
-            default=0
-        )
-
-        df["score_lpp_mudancas"] = score_mudancas
-        score_total += score_mudancas
-
-
-    # ========================================================
-    # ÍNDICE DE MOVIMENTO
-    # ========================================================
-
-    if "indice_movimento" in df.columns:
-
-        movimento = pd.to_numeric(
-            df["indice_movimento"],
-            errors="coerce",
-        ).fillna(0) * 100
-
-        score_movimento = np.select(
-
-            [
-                movimento >= 70,
-                (movimento >= 40) & (movimento < 70),
-                movimento < 40
-            ],
-
-            [
-                0,
-                10,
-                20
-            ],
-
-            default=0
-        )
-
-        df["score_lpp_movimento"] = score_movimento
-        score_total += score_movimento
-
-
-    # ========================================================
-    # RISCO DE IMOBILIDADE
-    # ========================================================
-
-    if "risco_imobilidade" in df.columns:
-
-        risco = df["risco_imobilidade"]
-
-        # Funciona se o risco já estiver entre 0 e 10
-        # ou em escala percentual
-
-        risco = pd.to_numeric(
-            risco,
-            errors="coerce"
-        )
-
-        risco = risco.fillna(0)
-
-
-        if risco.max() <= 10:
-
-            score_imobilidade = risco * 2
-
+    componentes = []
+    for destino, (origem, funcao) in requisitos.items():
+        if origem not in df.columns:
+            df[destino] = np.nan
         else:
+            serie = df[origem]
+            if origem != "uso_drogas_vasoativas":
+                serie = pd.to_numeric(serie, errors="coerce")
+            df[destino] = funcao(serie)
+        componentes.append(destino)
 
-            score_imobilidade = risco * 0.2
-
-
-        df["score_lpp_imobilidade"] = score_imobilidade.round(1)
-        score_total += score_imobilidade
-
-
-    # ========================================================
-    # GARANTIR COMPONENTES DO MOTOR
-    # ========================================================
-
-    for coluna_componente in [
-        "score_lpp_tempo",
-        "score_lpp_pressao",
-        "score_lpp_mudancas",
-        "score_lpp_movimento",
-        "score_lpp_imobilidade",
-    ]:
-        if coluna_componente not in df.columns:
-            df[coluna_componente] = 0.0
-
-    # ========================================================
-    # LIMITAR ENTRE 0 E 100
-    # ========================================================
-
-    df["score_lpp"] = (
-        score_total
-        .clip(0, 100)
-        .round(1)
-    )
-
+    # O score só é calculado quando os oito componentes estão disponíveis.
+    completos = df[componentes].notna().all(axis=1)
+    df["score_lpp"] = np.nan
+    df.loc[completos, "score_lpp"] = (
+        10 * df.loc[completos, componentes].mean(axis=1)
+    ).round(2)
 
     return df
 
-# ============================================================
-# CLASSIFICAÇÃO DO RISCO LPP
-# ============================================================
 
 def classificar_risco_lpp(df):
-
     df = df.copy()
 
-
     def classificar(score):
-
-        if score < 30:
+        if pd.isna(score):
+            return "Não disponível"
+        if score < 4:
             return "Baixo"
+        if score < 7:
+            return "Médio"
+        return "Alto"
 
-        elif score < 60:
-            return "Moderado"
+    df["classificacao_lpp_score"] = df["score_lpp"].apply(classificar)
+    df["classificacao_lpp"] = df["classificacao_lpp_score"]
 
-        elif score < 80:
-            return "Alto"
-
-        else:
-            return "Crítico"
-
-
-    df["classificacao_lpp"] = (
-        df["score_lpp"]
-        .apply(classificar)
+    # Regra automática definida no modelo:
+    # Braden <= 12 + posição > 120 min + uso de vasoativo => Alto.
+    vaso = (
+        df.get("uso_drogas_vasoativas", pd.Series("", index=df.index))
+        .astype(str).str.strip().str.lower().isin(["sim", "1", "true", "yes"])
     )
-
-
+    override = (
+        (pd.to_numeric(df.get("braden_total"), errors="coerce") <= 12)
+        & (pd.to_numeric(df.get("tempo_posicao_atual_min"), errors="coerce") > 120)
+        & vaso
+    )
+    df["regra_alto_risco_lpp"] = override
+    df.loc[override, "classificacao_lpp"] = "Alto"
     return df
 
+
 # ============================================================
-# CONTADOR DE ALERTAS
+# ALERTAS — TCC, SEÇÃO 5.3
 # ============================================================
 
 def calcular_alertas(df):
-
     df = df.copy()
 
-    alertas = pd.Series(
-        0,
-        index=df.index
-    )
+    fc = pd.to_numeric(df.get("frequencia_cardiaca"), errors="coerce")
+    pas = pd.to_numeric(df.get("pressao_sistolica"), errors="coerce")
+    spo2 = pd.to_numeric(df.get("saturacao_O2"), errors="coerce")
 
+    df["alerta_fc_motor"] = (fc <= 40) | (fc >= 131)
+    df["alerta_pas_motor"] = (pas <= 90) | (pas >= 220)
+    df["alerta_spo2_motor"] = spo2 <= 91
+    df["alerta_lpp_motor"] = df["classificacao_lpp"].eq("Alto")
 
-    # SpO2 crítica
+    colunas = [
+        "alerta_fc_motor",
+        "alerta_pas_motor",
+        "alerta_spo2_motor",
+        "alerta_lpp_motor",
+    ]
+    df["quantidade_alertas_motor"] = df[colunas].sum(axis=1).astype(int)
 
-    if "saturacao_O2" in df.columns:
+    # Alias oficial para as páginas novas. Mantém o nome simples sem
+    # reaproveitar os alertas antigos já existentes no CSV.
+    df["quantidade_alertas"] = df["quantidade_alertas_motor"]
 
-        alertas += (
-            df["saturacao_O2"] < 90
-        ).astype(int)
+    def motivos(row):
+        itens = []
+        if row["alerta_fc_motor"]:
+            itens.append("FC")
+        if row["alerta_pas_motor"]:
+            itens.append("PAS")
+        if row["alerta_spo2_motor"]:
+            itens.append("SpO₂")
+        if row["alerta_lpp_motor"]:
+            itens.append("LPP")
+        return ", ".join(itens) if itens else "Sem alerta"
 
-
-    # Frequência cardíaca crítica
-
-    if "frequencia_cardiaca" in df.columns:
-
-        alertas += (
-
-            (
-                df["frequencia_cardiaca"] < 50
-            )
-
-            |
-
-            (
-                df["frequencia_cardiaca"] > 120
-            )
-
-        ).astype(int)
-
-
-    # Temperatura crítica
-
-    if "temperatura" in df.columns:
-
-        alertas += (
-
-            (
-                df["temperatura"] < 35
-            )
-
-            |
-
-            (
-                df["temperatura"] > 38.5
-            )
-
-        ).astype(int)
-
-
-    # Lactato elevado
-
-    if "lactato" in df.columns:
-
-        alertas += (
-            df["lactato"] >= 4
-        ).astype(int)
-
-
-    # LPP crítico
-
-    if "score_lpp" in df.columns:
-
-        alertas += (
-            df["score_lpp"] >= 80
-        ).astype(int)
-
-
-    df["quantidade_alertas"] = alertas
-
-
+    df["motivos_alerta"] = df.apply(motivos, axis=1)
     return df
 
-# ============================================================
-# ÍNDICE DE PRIORIDADE
-# ============================================================
-
-def calcular_indice_prioridade(df):
-
-    df = df.copy()
-
-
-    # ========================================================
-    # NORMALIZAR ALERTAS
-    # ========================================================
-
-    if "quantidade_alertas" in df.columns:
-
-        max_alertas = 5
-
-        score_alertas = (
-
-            df["quantidade_alertas"]
-
-            / max_alertas
-
-            * 100
-
-        ).clip(0, 100)
-
-    else:
-
-        score_alertas = 0
-
-
-    # ========================================================
-    # ÍNDICE FINAL
-    # ========================================================
-
-    df["indice_prioridade"] = (
-
-        df["score_clinico"] * 0.40
-
-        +
-
-        df["score_lpp"] * 0.40
-
-        +
-
-        score_alertas * 0.20
-
-    ).round(1)
-
-
-    return df
-
-# ============================================================
-# CLASSIFICAÇÃO DA PRIORIDADE
-# ============================================================
-
-def classificar_prioridade(df):
-
-    df = df.copy()
-
-
-    def classificar(valor):
-
-        if valor < 30:
-            return "Baixa"
-
-        elif valor < 60:
-            return "Moderada"
-
-        elif valor < 80:
-            return "Alta"
-
-        else:
-            return "Crítica"
-
-
-    df["classificacao_prioridade"] = (
-        df["indice_prioridade"]
-        .apply(classificar)
-    )
-
-
-    return df
-
-# ============================================================
-# PIPELINE COMPLETO DO MOTOR DE RISCO
-# ============================================================
 
 def processar_riscos(df):
-
-    df = calcular_score_clinico(df)
-
-    df = classificar_risco_clinico(df)
-
+    """Pipeline único do motor analítico descrito até a Seção 5.5."""
     df = calcular_braden(df)
-
     df = classificar_braden(df)
-
     df = calcular_score_lpp(df)
-
     df = classificar_risco_lpp(df)
-
     df = calcular_alertas(df)
-
-    df = calcular_indice_prioridade(df)
-
-    df = classificar_prioridade(df)
-
     return df
