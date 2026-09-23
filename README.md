@@ -1,6 +1,10 @@
-#Dashboard Inteligente para Monitoramento de Risco Clínico e Operacional em UTI
+# Dashboard Inteligente para Monitoramento de Risco Clínico e Operacional em UTI
 
-Projeto de Trabalho de Conclusão de Curso — Engenharia Biomédica | PUC-Campinas
+<p align="center">
+
+Trabalho de Conclusão de Curso — Engenharia Biomédica | PUC-Campinas | 2026
+
+Protótipo acadêmico desenvolvido para integrar dados clínicos e operacionais de uma Unidade de Terapia Intensiva (UTI), transformando dados simulados em indicadores, classificações de risco e informações visuais para apoio à tomada de decisão.
 
 Objetivo
 
